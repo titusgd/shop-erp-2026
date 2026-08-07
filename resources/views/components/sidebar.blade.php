@@ -43,7 +43,7 @@
                 [
                     'key' => 'product-units',
                     'label' => '商品單位',
-                    'href' => '#',
+                    'route' => 'product-units.index',
                     'icon' => 'scale',
                 ],
                 [
@@ -256,6 +256,7 @@
     $routePrefixes = [
         'users' => 'users.*',
         'vendors' => 'vendors.*',
+        'product-units' => 'product-units.*',
     ];
 
     $isItemActive = function (array $item) use ($active, $routePrefixes): bool {
