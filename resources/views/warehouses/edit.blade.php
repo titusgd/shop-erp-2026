@@ -282,13 +282,10 @@
                             </div>
 
                             <div>
-                                <h3 class="text-sm font-semibold text-slate-900">修改歷程</h3>
-                                <p class="mt-1 text-sm text-slate-500">依時間由新到舊檢視此倉庫的建立與修改紀錄。</p>
-
                                 <button
                                     type="button"
                                     data-open-histories-modal
-                                    class="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:w-auto"
+                                    class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:w-auto"
                                 >
                                     <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
