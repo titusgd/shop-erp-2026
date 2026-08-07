@@ -6,6 +6,7 @@ use Database\Factories\WarehouseFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 #[Fillable([
     'name',
@@ -30,5 +31,13 @@ class Warehouse extends Model
         return [
             'is_active' => 'boolean',
         ];
+    }
+
+    /**
+     * @return BelongsToMany<WarehouseType, $this>
+     */
+    public function warehouseTypes(): BelongsToMany
+    {
+        return $this->belongsToMany(WarehouseType::class);
     }
 }

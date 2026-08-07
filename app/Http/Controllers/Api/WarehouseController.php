@@ -38,7 +38,7 @@ class WarehouseController extends Controller
 
     public function show(Warehouse $warehouse): WarehouseResource
     {
-        return new WarehouseResource($warehouse);
+        return new WarehouseResource($warehouse->load('warehouseTypes'));
     }
 
     public function update(UpdateWarehouseRequest $request, Warehouse $warehouse): WarehouseResource

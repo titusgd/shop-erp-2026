@@ -4,6 +4,7 @@ namespace Tests\Feature\Warehouses;
 
 use App\Models\User;
 use App\Models\Warehouse;
+use App\Models\WarehouseType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -35,7 +36,11 @@ class WarehouseManagementTest extends TestCase
             ->get(route('warehouses.create'))
             ->assertOk()
             ->assertSee('新增倉庫')
+            ->assertSee('基本資料')
+            ->assertSee('聯絡資訊')
+            ->assertSee('其他')
             ->assertSee('倉庫名稱')
+            ->assertSee('倉庫類型')
             ->assertSee('聯絡人');
     }
 
@@ -50,6 +55,9 @@ class WarehouseManagementTest extends TestCase
             ->get(route('warehouses.edit', $warehouse))
             ->assertOk()
             ->assertSee('編輯倉庫')
+            ->assertSee('基本資料')
+            ->assertSee('聯絡資訊')
+            ->assertSee('其他')
             ->assertSee('測試倉庫')
             ->assertSee('系統編號')
             ->assertSee($warehouse->fresh()->code);
@@ -193,5 +201,74 @@ class WarehouseManagementTest extends TestCase
             ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['name']);
+    }
+
+    public function test_warehouses_can_be_created_with_multiple_types(): void
+    {
+        $user = User::factory()->create();
+        $typeA = WarehouseType::factory()->create(['name' => '總倉']);
+        $typeB = WarehouseType::factory()->create(['name' => '門市倉']);
+
+        $response = $this->actingAs($user)
+            ->postJson('/api/warehouses', [
+                'name' => '多類型倉庫',
+                'warehouse_type_ids' => [$typeA->id, $typeB->id],
+                'is_active' => true,
+            ])
+            ->assertCreated()
+            ->assertJsonCount(2, 'data.warehouse_types');
+
+        $warehouseId = $response->json('data.id');
+
+        $this->assertDatabaseHas('warehouse_warehouse_type', [
+            'warehouse_id' => $warehouseId,
+            'warehouse_type_id' => $typeA->id,
+        ]);
+        $this->assertDatabaseHas('warehouse_warehouse_type', [
+            'warehouse_id' => $warehouseId,
+            'warehouse_type_id' => $typeB->id,
+        ]);
+    }
+
+    public function test_warehouses_can_sync_types_on_update(): void
+    {
+        $user = User::factory()->create();
+        $typeA = WarehouseType::factory()->create(['name' => '總倉']);
+        $typeB = WarehouseType::factory()->create(['name' => '退貨倉']);
+        $warehouse = Warehouse::factory()->create(['name' => '同步倉庫']);
+        $warehouse->warehouseTypes()->sync([$typeA->id]);
+
+        $this->actingAs($user)
+            ->putJson("/api/warehouses/{$warehouse->id}", [
+                'name' => '同步倉庫',
+                'warehouse_type_ids' => [$typeB->id],
+                'is_active' => true,
+            ])
+            ->assertOk()
+            ->assertJsonCount(1, 'data.warehouse_types')
+            ->assertJsonPath('data.warehouse_types.0.id', $typeB->id);
+
+        $this->assertDatabaseMissing('warehouse_warehouse_type', [
+            'warehouse_id' => $warehouse->id,
+            'warehouse_type_id' => $typeA->id,
+        ]);
+        $this->assertDatabaseHas('warehouse_warehouse_type', [
+            'warehouse_id' => $warehouse->id,
+            'warehouse_type_id' => $typeB->id,
+        ]);
+    }
+
+    public function test_edit_page_shows_selected_warehouse_types(): void
+    {
+        $user = User::factory()->create();
+        $type = WarehouseType::factory()->create(['name' => '寄售倉']);
+        $warehouse = Warehouse::factory()->create(['name' => '編輯倉庫']);
+        $warehouse->warehouseTypes()->sync([$type->id]);
+
+        $this->actingAs($user)
+            ->get(route('warehouses.edit', $warehouse))
+            ->assertOk()
+            ->assertSee('倉庫類型')
+            ->assertSee('寄售倉');
     }
 }

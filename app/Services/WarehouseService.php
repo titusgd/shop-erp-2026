@@ -19,6 +19,7 @@ class WarehouseService
         $perPage = max(1, min($perPage, 50));
 
         return Warehouse::query()
+            ->with('warehouseTypes')
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($query) use ($search) {
                     $query->where('name', 'like', "%{$search}%")
@@ -42,7 +43,8 @@ class WarehouseService
      *     email?: string|null,
      *     address?: string|null,
      *     notes?: string|null,
-     *     is_active?: bool|null
+     *     is_active?: bool|null,
+     *     warehouse_type_ids?: list<int>|null
      * }  $data
      */
     public function create(array $data): Warehouse
@@ -62,7 +64,9 @@ class WarehouseService
             $warehouse->code = $this->formatSystemCode($warehouse->id);
             $warehouse->save();
 
-            return $warehouse->refresh();
+            $warehouse->warehouseTypes()->sync($data['warehouse_type_ids'] ?? []);
+
+            return $warehouse->load('warehouseTypes');
         });
     }
 
@@ -74,23 +78,30 @@ class WarehouseService
      *     email?: string|null,
      *     address?: string|null,
      *     notes?: string|null,
-     *     is_active?: bool|null
+     *     is_active?: bool|null,
+     *     warehouse_type_ids?: list<int>|null
      * }  $data
      */
     public function update(Warehouse $warehouse, array $data): Warehouse
     {
-        $warehouse->fill([
-            'name' => $data['name'],
-            'contact_name' => $this->nullableString($data['contact_name'] ?? null),
-            'phone' => $this->nullableString($data['phone'] ?? null),
-            'email' => $this->nullableString($data['email'] ?? null),
-            'address' => $this->nullableString($data['address'] ?? null),
-            'notes' => $this->nullableString($data['notes'] ?? null),
-            'is_active' => (bool) ($data['is_active'] ?? true),
-        ]);
-        $warehouse->save();
+        return DB::transaction(function () use ($warehouse, $data) {
+            $warehouse->fill([
+                'name' => $data['name'],
+                'contact_name' => $this->nullableString($data['contact_name'] ?? null),
+                'phone' => $this->nullableString($data['phone'] ?? null),
+                'email' => $this->nullableString($data['email'] ?? null),
+                'address' => $this->nullableString($data['address'] ?? null),
+                'notes' => $this->nullableString($data['notes'] ?? null),
+                'is_active' => (bool) ($data['is_active'] ?? true),
+            ]);
+            $warehouse->save();
 
-        return $warehouse->refresh();
+            if (array_key_exists('warehouse_type_ids', $data)) {
+                $warehouse->warehouseTypes()->sync($data['warehouse_type_ids'] ?? []);
+            }
+
+            return $warehouse->load('warehouseTypes');
+        });
     }
 
     public function delete(Warehouse $warehouse): void

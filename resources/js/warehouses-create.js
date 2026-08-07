@@ -1,3 +1,5 @@
+import { initSearchableMultiSelect } from './components/searchable-multi-select';
+
 const csrfToken = () =>
     document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
 
@@ -30,7 +32,23 @@ async function api(url, options = {}) {
     return payload;
 }
 
-function collectWarehousePayload(form) {
+const FIELD_TAB_MAP = {
+    name: 'basic',
+    warehouse_type_ids: 'basic',
+    is_active: 'basic',
+    contact_name: 'contact',
+    phone: 'contact',
+    email: 'contact',
+    address: 'contact',
+    notes: 'other',
+};
+
+const activeTabClass =
+    'whitespace-nowrap border-b-2 border-teal-700 px-3 py-3 text-sm font-medium text-teal-800 transition hover:text-teal-900';
+const inactiveTabClass =
+    'whitespace-nowrap border-b-2 border-transparent px-3 py-3 text-sm font-medium text-slate-500 transition hover:border-slate-300 hover:text-slate-700';
+
+function collectWarehousePayload(form, typeSelect) {
     return {
         name: form.querySelector('[data-field="name"]').value.trim(),
         contact_name: form.querySelector('[data-field="contact_name"]').value.trim(),
@@ -39,7 +57,69 @@ function collectWarehousePayload(form) {
         address: form.querySelector('[data-field="address"]').value.trim(),
         notes: form.querySelector('[data-field="notes"]').value.trim(),
         is_active: form.querySelector('[data-field="is_active"]').checked,
+        warehouse_type_ids: typeSelect.getSelectedIds(),
     };
+}
+
+function initTabs(root) {
+    const tabs = [...root.querySelectorAll('[data-tab]')];
+    const panels = [...root.querySelectorAll('[data-tab-panel]')];
+
+    const activateTab = (tabKey) => {
+        tabs.forEach((tab) => {
+            const isActive = tab.dataset.tab === tabKey;
+            tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+            tab.className = isActive ? activeTabClass : inactiveTabClass;
+            tab.tabIndex = isActive ? 0 : -1;
+        });
+
+        panels.forEach((panel) => {
+            panel.hidden = panel.dataset.tabPanel !== tabKey;
+        });
+    };
+
+    tabs.forEach((tab) => {
+        tab.addEventListener('click', () => activateTab(tab.dataset.tab));
+    });
+
+    root.querySelector('[data-tabs]')?.addEventListener('keydown', (event) => {
+        const currentIndex = tabs.findIndex((tab) => tab.getAttribute('aria-selected') === 'true');
+        if (currentIndex < 0) {
+            return;
+        }
+
+        let nextIndex = null;
+
+        if (event.key === 'ArrowRight') {
+            nextIndex = (currentIndex + 1) % tabs.length;
+        } else if (event.key === 'ArrowLeft') {
+            nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+        } else if (event.key === 'Home') {
+            nextIndex = 0;
+        } else if (event.key === 'End') {
+            nextIndex = tabs.length - 1;
+        }
+
+        if (nextIndex === null) {
+            return;
+        }
+
+        event.preventDefault();
+        activateTab(tabs[nextIndex].dataset.tab);
+        tabs[nextIndex].focus();
+    });
+
+    activateTab('basic');
+
+    return { activateTab };
+}
+
+function resolveErrorTab(field) {
+    if (field.startsWith('warehouse_type_ids')) {
+        return 'basic';
+    }
+
+    return FIELD_TAB_MAP[field] ?? 'basic';
 }
 
 function initWarehouseCreatePage(root) {
@@ -47,6 +127,14 @@ function initWarehouseCreatePage(root) {
     const form = root.querySelector('[data-warehouse-form]');
     const submitButton = root.querySelector('[data-submit]');
     const alertBox = root.querySelector('[data-alert]');
+    const { activateTab } = initTabs(root);
+    const typeSelectRoot = root.querySelector('[data-warehouse-type-multi-select]');
+    const typeSelect = initSearchableMultiSelect(typeSelectRoot, {
+        endpoint: '/api/warehouse-types',
+        queryParams: { active_only: '1' },
+        emptyLabel: '目前沒有可選的倉庫類型',
+        noResultLabel: '找不到符合的倉庫類型',
+    });
 
     const showAlert = (message, type = 'error') => {
         alertBox.hidden = false;
@@ -67,8 +155,17 @@ function initWarehouseCreatePage(root) {
     const showErrors = (errors = {}, message = null) => {
         clearErrors();
 
+        const errorFields = Object.keys(errors);
+        if (errorFields.length > 0) {
+            activateTab(resolveErrorTab(errorFields[0]));
+        }
+
         Object.entries(errors).forEach(([field, messages]) => {
-            const el = form.querySelector(`[data-error="${field}"]`);
+            const el =
+                form.querySelector(`[data-error="${field}"]`) ??
+                (field.startsWith('warehouse_type_ids')
+                    ? form.querySelector('[data-error="warehouse_type_ids"]')
+                    : null);
             if (el) {
                 el.textContent = Array.isArray(messages) ? messages[0] : String(messages);
                 el.classList.remove('hidden');
@@ -86,7 +183,7 @@ function initWarehouseCreatePage(root) {
         event.preventDefault();
         clearErrors();
 
-        const payload = collectWarehousePayload(form);
+        const payload = collectWarehousePayload(form, typeSelect);
         submitButton.disabled = true;
 
         try {

@@ -23,6 +23,7 @@ class WarehouseResource extends JsonResource
             'address' => $this->address,
             'notes' => $this->notes,
             'is_active' => $this->is_active,
+            'warehouse_types' => WarehouseTypeResource::collection($this->whenLoaded('warehouseTypes')),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

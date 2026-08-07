@@ -19,6 +19,8 @@ class WarehouseController extends Controller
 
     public function edit(Warehouse $warehouse): View
     {
+        $warehouse->load('warehouseTypes');
+
         return view('warehouses.edit', [
             'warehouse' => $warehouse,
         ]);

@@ -18,7 +18,10 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             VendorSeeder::class,
             ProductUnitSeeder::class,
+            WarehouseTypeSeeder::class,
             WarehouseSeeder::class,
+            CitySeeder::class,
+            DistrictSeeder::class,
         ]);
     }
 }

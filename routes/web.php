@@ -1,11 +1,14 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\CityController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DistrictController;
 use App\Http\Controllers\ProductUnitController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VendorController;
 use App\Http\Controllers\WarehouseController;
+use App\Http\Controllers\WarehouseTypeController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -34,9 +37,21 @@ Route::middleware('auth')->group(function () {
     Route::get('product-units/create', [ProductUnitController::class, 'create'])->name('product-units.create');
     Route::get('product-units/{product_unit}/edit', [ProductUnitController::class, 'edit'])->name('product-units.edit');
 
+    Route::get('warehouse-types', [WarehouseTypeController::class, 'index'])->name('warehouse-types.index');
+    Route::get('warehouse-types/create', [WarehouseTypeController::class, 'create'])->name('warehouse-types.create');
+    Route::get('warehouse-types/{warehouse_type}/edit', [WarehouseTypeController::class, 'edit'])->name('warehouse-types.edit');
+
     Route::get('warehouses', [WarehouseController::class, 'index'])->name('warehouses.index');
     Route::get('warehouses/create', [WarehouseController::class, 'create'])->name('warehouses.create');
     Route::get('warehouses/{warehouse}/edit', [WarehouseController::class, 'edit'])->name('warehouses.edit');
+
+    Route::get('cities', [CityController::class, 'index'])->name('cities.index');
+    Route::get('cities/create', [CityController::class, 'create'])->name('cities.create');
+    Route::get('cities/{city}/edit', [CityController::class, 'edit'])->name('cities.edit');
+
+    Route::get('districts', [DistrictController::class, 'index'])->name('districts.index');
+    Route::get('districts/create', [DistrictController::class, 'create'])->name('districts.create');
+    Route::get('districts/{district}/edit', [DistrictController::class, 'edit'])->name('districts.edit');
 
     Route::post('logout', [LoginController::class, 'destroy'])->name('logout');
 });

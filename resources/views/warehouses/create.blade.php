@@ -22,141 +22,210 @@
             </a>
         </section>
 
-        <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-8">
-            <form data-warehouse-form class="space-y-4">
-                <div>
-                    <label for="warehouse-name" class="mb-1.5 block text-sm font-medium text-slate-700">倉庫名稱</label>
-                    <input
-                        id="warehouse-name"
-                        name="name"
-                        type="text"
-                        required
-                        autofocus
-                        data-field="name"
-                        value="{{ old('name') }}"
-                        class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
-                    >
-                    <p class="mt-1 hidden text-sm text-red-600" data-error="name"></p>
-                </div>
-
-                <div>
-                    <label for="warehouse-contact-name" class="mb-1.5 block text-sm font-medium text-slate-700">
-                        聯絡人
-                        <span class="font-normal text-slate-400">（選填）</span>
-                    </label>
-                    <input
-                        id="warehouse-contact-name"
-                        name="contact_name"
-                        type="text"
-                        data-field="contact_name"
-                        value="{{ old('contact_name') }}"
-                        class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
-                    >
-                    <p class="mt-1 hidden text-sm text-red-600" data-error="contact_name"></p>
-                </div>
-
-                <div class="grid gap-4 sm:grid-cols-2">
-                    <div>
-                        <label for="warehouse-phone" class="mb-1.5 block text-sm font-medium text-slate-700">
-                            電話
-                            <span class="font-normal text-slate-400">（選填）</span>
-                        </label>
-                        <input
-                            id="warehouse-phone"
-                            name="phone"
-                            type="text"
-                            data-field="phone"
-                            value="{{ old('phone') }}"
-                            class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+        <section class="rounded-xl border border-slate-200 bg-white shadow-sm">
+            <form data-warehouse-form>
+                <div class="border-b border-slate-200 px-4 sm:px-8" data-tabs>
+                    <nav class="-mb-px flex gap-1 overflow-x-auto" role="tablist" aria-label="倉庫資料分頁">
+                        <button
+                            type="button"
+                            role="tab"
+                            id="warehouse-tab-basic"
+                            data-tab="basic"
+                            aria-controls="warehouse-panel-basic"
+                            aria-selected="true"
+                            class="whitespace-nowrap border-b-2 border-teal-700 px-3 py-3 text-sm font-medium text-teal-800 transition hover:text-teal-900"
                         >
-                        <p class="mt-1 hidden text-sm text-red-600" data-error="phone"></p>
+                            基本資料
+                        </button>
+                        <button
+                            type="button"
+                            role="tab"
+                            id="warehouse-tab-contact"
+                            data-tab="contact"
+                            aria-controls="warehouse-panel-contact"
+                            aria-selected="false"
+                            class="whitespace-nowrap border-b-2 border-transparent px-3 py-3 text-sm font-medium text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+                        >
+                            聯絡資訊
+                        </button>
+                        <button
+                            type="button"
+                            role="tab"
+                            id="warehouse-tab-other"
+                            data-tab="other"
+                            aria-controls="warehouse-panel-other"
+                            aria-selected="false"
+                            class="whitespace-nowrap border-b-2 border-transparent px-3 py-3 text-sm font-medium text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+                        >
+                            其他
+                        </button>
+                    </nav>
+                </div>
+
+                <div class="space-y-4 p-4 sm:p-8">
+                    <div
+                        id="warehouse-panel-basic"
+                        role="tabpanel"
+                        aria-labelledby="warehouse-tab-basic"
+                        data-tab-panel="basic"
+                    >
+                        <div class="space-y-4">
+                            <div>
+                                <label for="warehouse-name" class="mb-1.5 block text-sm font-medium text-slate-700">倉庫名稱</label>
+                                <input
+                                    id="warehouse-name"
+                                    name="name"
+                                    type="text"
+                                    required
+                                    autofocus
+                                    data-field="name"
+                                    value="{{ old('name') }}"
+                                    class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                                >
+                                <p class="mt-1 hidden text-sm text-red-600" data-error="name"></p>
+                            </div>
+
+                            <x-warehouse-type-multi-select />
+
+                            <div>
+                                <label class="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
+                                    <input
+                                        type="checkbox"
+                                        name="is_active"
+                                        data-field="is_active"
+                                        value="1"
+                                        @checked(old('is_active', true))
+                                        class="h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-500"
+                                    >
+                                    啟用此倉庫
+                                </label>
+                                <p class="mt-1 hidden text-sm text-red-600" data-error="is_active"></p>
+                            </div>
+                        </div>
                     </div>
 
-                    <div>
-                        <label for="warehouse-email" class="mb-1.5 block text-sm font-medium text-slate-700">
-                            電子郵件
-                            <span class="font-normal text-slate-400">（選填）</span>
-                        </label>
-                        <input
-                            id="warehouse-email"
-                            name="email"
-                            type="email"
-                            data-field="email"
-                            value="{{ old('email') }}"
-                            class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
-                        >
-                        <p class="mt-1 hidden text-sm text-red-600" data-error="email"></p>
+                    <div
+                        id="warehouse-panel-contact"
+                        role="tabpanel"
+                        aria-labelledby="warehouse-tab-contact"
+                        data-tab-panel="contact"
+                        hidden
+                    >
+                        <div class="space-y-4">
+                            <div>
+                                <label for="warehouse-contact-name" class="mb-1.5 block text-sm font-medium text-slate-700">
+                                    聯絡人
+                                    <span class="font-normal text-slate-400">（選填）</span>
+                                </label>
+                                <input
+                                    id="warehouse-contact-name"
+                                    name="contact_name"
+                                    type="text"
+                                    data-field="contact_name"
+                                    value="{{ old('contact_name') }}"
+                                    class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                                >
+                                <p class="mt-1 hidden text-sm text-red-600" data-error="contact_name"></p>
+                            </div>
+
+                            <div class="grid gap-4 sm:grid-cols-2">
+                                <div>
+                                    <label for="warehouse-phone" class="mb-1.5 block text-sm font-medium text-slate-700">
+                                        電話
+                                        <span class="font-normal text-slate-400">（選填）</span>
+                                    </label>
+                                    <input
+                                        id="warehouse-phone"
+                                        name="phone"
+                                        type="text"
+                                        data-field="phone"
+                                        value="{{ old('phone') }}"
+                                        class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                                    >
+                                    <p class="mt-1 hidden text-sm text-red-600" data-error="phone"></p>
+                                </div>
+
+                                <div>
+                                    <label for="warehouse-email" class="mb-1.5 block text-sm font-medium text-slate-700">
+                                        電子郵件
+                                        <span class="font-normal text-slate-400">（選填）</span>
+                                    </label>
+                                    <input
+                                        id="warehouse-email"
+                                        name="email"
+                                        type="email"
+                                        data-field="email"
+                                        value="{{ old('email') }}"
+                                        class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                                    >
+                                    <p class="mt-1 hidden text-sm text-red-600" data-error="email"></p>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label for="warehouse-address" class="mb-1.5 block text-sm font-medium text-slate-700">
+                                    地址
+                                    <span class="font-normal text-slate-400">（選填）</span>
+                                </label>
+                                <input
+                                    id="warehouse-address"
+                                    name="address"
+                                    type="text"
+                                    data-field="address"
+                                    value="{{ old('address') }}"
+                                    class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                                >
+                                <p class="mt-1 hidden text-sm text-red-600" data-error="address"></p>
+                            </div>
+                        </div>
                     </div>
-                </div>
 
-                <div>
-                    <label for="warehouse-address" class="mb-1.5 block text-sm font-medium text-slate-700">
-                        地址
-                        <span class="font-normal text-slate-400">（選填）</span>
-                    </label>
-                    <input
-                        id="warehouse-address"
-                        name="address"
-                        type="text"
-                        data-field="address"
-                        value="{{ old('address') }}"
-                        class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                    <div
+                        id="warehouse-panel-other"
+                        role="tabpanel"
+                        aria-labelledby="warehouse-tab-other"
+                        data-tab-panel="other"
+                        hidden
                     >
-                    <p class="mt-1 hidden text-sm text-red-600" data-error="address"></p>
-                </div>
+                        <div>
+                            <label for="warehouse-notes" class="mb-1.5 block text-sm font-medium text-slate-700">
+                                備註
+                                <span class="font-normal text-slate-400">（選填）</span>
+                            </label>
+                            <textarea
+                                id="warehouse-notes"
+                                name="notes"
+                                rows="5"
+                                data-field="notes"
+                                class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                            >{{ old('notes') }}</textarea>
+                            <p class="mt-1 hidden text-sm text-red-600" data-error="notes"></p>
+                        </div>
+                    </div>
 
-                <div>
-                    <label for="warehouse-notes" class="mb-1.5 block text-sm font-medium text-slate-700">
-                        備註
-                        <span class="font-normal text-slate-400">（選填）</span>
-                    </label>
-                    <textarea
-                        id="warehouse-notes"
-                        name="notes"
-                        rows="3"
-                        data-field="notes"
-                        class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
-                    >{{ old('notes') }}</textarea>
-                    <p class="mt-1 hidden text-sm text-red-600" data-error="notes"></p>
-                </div>
+                    <p class="hidden text-sm text-red-600" data-error="form"></p>
 
-                <div>
-                    <label class="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
-                        <input
-                            type="checkbox"
-                            name="is_active"
-                            data-field="is_active"
-                            value="1"
-                            @checked(old('is_active', true))
-                            class="h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-500"
+                    <div class="flex flex-col-reverse gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:justify-end">
+                        <a
+                            href="{{ route('warehouses.index') }}"
+                            class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:w-auto"
                         >
-                        啟用此倉庫
-                    </label>
-                    <p class="mt-1 hidden text-sm text-red-600" data-error="is_active"></p>
-                </div>
-
-                <p class="hidden text-sm text-red-600" data-error="form"></p>
-
-                <div class="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
-                    <a
-                        href="{{ route('warehouses.index') }}"
-                        class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:w-auto"
-                    >
-                        <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                        </svg>
-                        取消
-                    </a>
-                    <button
-                        type="submit"
-                        data-submit
-                        class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-                    >
-                        <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                        </svg>
-                        儲存
-                    </button>
+                            <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                            </svg>
+                            取消
+                        </a>
+                        <button
+                            type="submit"
+                            data-submit
+                            class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                        >
+                            <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                            </svg>
+                            儲存
+                        </button>
+                    </div>
                 </div>
             </form>
         </section>

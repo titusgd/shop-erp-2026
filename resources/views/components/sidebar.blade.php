@@ -47,10 +47,28 @@
                     'icon' => 'scale',
                 ],
                 [
+                    'key' => 'warehouse-types',
+                    'label' => '倉庫類型管理',
+                    'route' => 'warehouse-types.index',
+                    'icon' => 'tag',
+                ],
+                [
                     'key' => 'warehouses',
                     'label' => '倉庫管理',
                     'route' => 'warehouses.index',
                     'icon' => 'home-modern',
+                ],
+                [
+                    'key' => 'cities',
+                    'label' => '縣市管理',
+                    'route' => 'cities.index',
+                    'icon' => 'map',
+                ],
+                [
+                    'key' => 'districts',
+                    'label' => '地區管理',
+                    'route' => 'districts.index',
+                    'icon' => 'map-pin',
                 ],
             ],
         ],
@@ -227,7 +245,10 @@
             'cube' => '<svg '.$attrs.'><path stroke-linecap="round" stroke-linejoin="round" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" /></svg>',
             'folder' => '<svg '.$attrs.'><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" /></svg>',
             'scale' => '<svg '.$attrs.'><path stroke-linecap="round" stroke-linejoin="round" d="m12 3-3.75 9h7.5L12 3Zm0 0v18m-7.5-6.75h3.75m7.5 0H19.5M5.25 21h13.5" /></svg>',
+            'tag' => '<svg '.$attrs.'><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6Z" /></svg>',
             'home-modern' => '<svg '.$attrs.'><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 21v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21m0 0h4.5V3.545M12.75 21h7.5V10.75M2.25 21h1.5m18 0h-18M2.25 9l4.5-1.636M18.75 3l-1.5.545m0 6.205 3 1m0 0-3 1.091M18.75 3.75l-1.5.545M2.25 9l3 1.091m0 0L2.25 12m3-1.909 3.75 1.364" /></svg>',
+            'map' => '<svg '.$attrs.'><path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m0-8.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v8.25m0 0a.75.75 0 0 1-.75.75h-3.5a.75.75 0 0 1-.75-.75m6.75-9.75L21 4.5v14.25l-3.75-1.5m0-12.75L15 4.5v14.25l2.25.9M3 19.5l3.75-1.5V4.5L3 6v13.5Z" /></svg>',
+            'map-pin' => '<svg '.$attrs.'><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" /></svg>',
             'clipboard-document-list' => '<svg '.$attrs.'><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.551 0c-.118-.008-.236-.016-.355-.023A2.25 2.25 0 0 0 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z" /></svg>',
             'truck' => '<svg '.$attrs.'><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.131 1.131 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" /></svg>',
             'arrow-uturn-left' => '<svg '.$attrs.'><path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" /></svg>',
@@ -257,7 +278,10 @@
         'users' => 'users.*',
         'vendors' => 'vendors.*',
         'product-units' => 'product-units.*',
+        'warehouse-types' => 'warehouse-types.*',
         'warehouses' => 'warehouses.*',
+        'cities' => 'cities.*',
+        'districts' => 'districts.*',
     ];
 
     $isItemActive = function (array $item) use ($active, $routePrefixes): bool {

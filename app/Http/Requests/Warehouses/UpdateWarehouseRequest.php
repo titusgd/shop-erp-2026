@@ -20,6 +20,10 @@ class UpdateWarehouseRequest extends FormRequest
                 $this->merge([$field => null]);
             }
         }
+
+        if (! $this->has('warehouse_type_ids')) {
+            $this->merge(['warehouse_type_ids' => []]);
+        }
     }
 
     /**
@@ -35,6 +39,8 @@ class UpdateWarehouseRequest extends FormRequest
             'address' => ['nullable', 'string', 'max:500'],
             'notes' => ['nullable', 'string', 'max:2000'],
             'is_active' => ['sometimes', 'boolean'],
+            'warehouse_type_ids' => ['nullable', 'array'],
+            'warehouse_type_ids.*' => ['integer', 'distinct', 'exists:warehouse_types,id'],
         ];
     }
 
@@ -51,6 +57,8 @@ class UpdateWarehouseRequest extends FormRequest
             'address' => '地址',
             'notes' => '備註',
             'is_active' => '啟用狀態',
+            'warehouse_type_ids' => '倉庫類型',
+            'warehouse_type_ids.*' => '倉庫類型',
         ];
     }
 }
