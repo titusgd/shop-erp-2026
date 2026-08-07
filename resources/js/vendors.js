@@ -1,22 +1,8 @@
 const csrfToken = () =>
     document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
 
-const formatDate = (value) => {
-    if (!value) {
-        return '—';
-    }
-
-    return new Intl.DateTimeFormat('zh-TW', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-    }).format(new Date(value));
-};
-
 const escapeHtml = (value) =>
-    String(value)
+    String(value ?? '')
         .replaceAll('&', '&amp;')
         .replaceAll('<', '&lt;')
         .replaceAll('>', '&gt;')
@@ -52,8 +38,7 @@ async function api(url, options = {}) {
     return payload;
 }
 
-function initUsersPage(root) {
-    const currentUserId = Number(root.dataset.currentUserId);
+function initVendorsPage(root) {
     const tableBody = root.querySelector('[data-table-body]');
     const meta = root.querySelector('[data-meta]');
     const searchInput = root.querySelector('[data-search]');
@@ -61,6 +46,11 @@ function initUsersPage(root) {
     const paginationSummary = root.querySelector('[data-pagination-summary]');
     const paginationControls = root.querySelector('[data-pagination-controls]');
     const alertBox = root.querySelector('[data-alert]');
+    const deleteDialog = root.querySelector('[data-delete-dialog]');
+    const deleteDialogMessage = root.querySelector('[data-delete-dialog-message]');
+    const deleteDialogCancel = root.querySelector('[data-delete-dialog-cancel]');
+    const deleteDialogConfirm = root.querySelector('[data-delete-dialog-confirm]');
+    const deleteDialogBackdrop = root.querySelector('[data-delete-dialog-backdrop]');
 
     let page = 1;
     let lastPage = 1;
@@ -69,6 +59,8 @@ function initUsersPage(root) {
     let total = 0;
     let search = '';
     let searchTimer = null;
+    let pendingDeleteId = null;
+    let isDeleting = false;
 
     const chevronLeft = `
         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -165,41 +157,50 @@ function initUsersPage(root) {
         }, 3200);
     };
 
-    const renderRows = (users) => {
-        if (!users.length) {
+    const statusBadge = (isActive) =>
+        isActive
+            ? '<span class="inline-flex rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-medium text-teal-800">啟用</span>'
+            : '<span class="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">停用</span>';
+
+    const renderRows = (vendors) => {
+        if (!vendors.length) {
             tableBody.innerHTML =
-                '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-500 sm:px-5">目前沒有帳號資料</td></tr>';
+                '<tr><td colspan="7" class="px-4 py-8 text-center text-slate-500 sm:px-5">目前沒有廠商資料</td></tr>';
             return;
         }
 
-        tableBody.innerHTML = users
-            .map((user) => {
-                const isSelf = Number(user.id) === currentUserId;
-                const deleteDisabled = isSelf
-                    ? 'disabled class="rounded-lg px-2.5 py-1.5 text-sm font-medium text-slate-300 cursor-not-allowed"'
-                    : 'data-action="delete" data-id="' +
-                      user.id +
-                      '" class="rounded-lg px-2.5 py-1.5 text-sm font-medium text-red-700 transition hover:bg-red-50"';
-
-                return `
+        tableBody.innerHTML = vendors
+            .map(
+                (vendor) => `
                     <tr>
-                        <td class="px-4 py-3 font-medium text-slate-900 sm:px-5">${escapeHtml(user.name)}</td>
-                        <td class="px-4 py-3 text-slate-700 sm:px-5">${escapeHtml(user.username)}</td>
-                        <td class="px-4 py-3 text-slate-700 sm:px-5">${escapeHtml(user.email)}</td>
-                        <td class="px-4 py-3 text-slate-500 sm:px-5">${escapeHtml(formatDate(user.created_at))}</td>
+                        <td class="px-4 py-3 font-medium text-slate-900 sm:px-5">${escapeHtml(vendor.code || '—')}</td>
+                        <td class="px-4 py-3 text-slate-900 sm:px-5">${escapeHtml(vendor.name)}</td>
+                        <td class="px-4 py-3 text-slate-700 sm:px-5">${escapeHtml(vendor.tax_id || '—')}</td>
+                        <td class="px-4 py-3 text-slate-700 sm:px-5">${escapeHtml(vendor.contact_name || '—')}</td>
+                        <td class="px-4 py-3 text-slate-700 sm:px-5">${escapeHtml(vendor.phone || '—')}</td>
+                        <td class="px-4 py-3 sm:px-5">${statusBadge(vendor.is_active)}</td>
                         <td class="px-4 py-3 text-right sm:px-5">
                             <div class="inline-flex items-center gap-1">
-                                <a href="/users/${user.id}/edit" class="rounded-lg px-2.5 py-1.5 text-sm font-medium text-teal-700 transition hover:bg-teal-50">編輯</a>
-                                <button type="button" ${deleteDisabled}>刪除</button>
+                                <a href="/vendors/${vendor.id}/edit" class="rounded-lg px-2.5 py-1.5 text-sm font-medium text-teal-700 transition hover:bg-teal-50">編輯</a>
+                                <button
+                                    type="button"
+                                    data-action="delete"
+                                    data-id="${vendor.id}"
+                                    data-name="${escapeHtml(vendor.name)}"
+                                    data-code="${escapeHtml(vendor.code || '')}"
+                                    class="rounded-lg px-2.5 py-1.5 text-sm font-medium text-red-700 transition hover:bg-red-50"
+                                >
+                                    刪除
+                                </button>
                             </div>
                         </td>
                     </tr>
-                `;
-            })
+                `,
+            )
             .join('');
     };
 
-    const loadUsers = async () => {
+    const loadVendors = async () => {
         meta.textContent = '載入中…';
 
         const params = new URLSearchParams({
@@ -212,50 +213,90 @@ function initUsersPage(root) {
         }
 
         try {
-            const payload = await api(`/api/users?${params.toString()}`);
-            const users = payload.data ?? [];
+            const payload = await api(`/api/vendors?${params.toString()}`);
+            const vendors = payload.data ?? [];
 
             page = payload.meta?.current_page ?? 1;
             lastPage = payload.meta?.last_page ?? 1;
-            from = payload.meta?.from ?? (users.length ? 1 : 0);
-            to = payload.meta?.to ?? users.length;
-            total = payload.meta?.total ?? users.length;
+            from = payload.meta?.from ?? (vendors.length ? 1 : 0);
+            to = payload.meta?.to ?? vendors.length;
+            total = payload.meta?.total ?? vendors.length;
 
-            renderRows(users);
+            renderRows(vendors);
             meta.textContent = `共 ${total} 筆`;
             renderPagination();
         } catch (error) {
             tableBody.innerHTML =
-                '<tr><td colspan="5" class="px-4 py-8 text-center text-red-600 sm:px-5">載入失敗，請稍後再試</td></tr>';
+                '<tr><td colspan="7" class="px-4 py-8 text-center text-red-600 sm:px-5">載入失敗，請稍後再試</td></tr>';
             meta.textContent = '載入失敗';
             pagination.hidden = true;
-            showAlert(error.message || '載入帳號列表失敗', 'error');
+            showAlert(error.message || '載入廠商列表失敗', 'error');
         }
     };
 
-    tableBody.addEventListener('click', async (event) => {
+    const closeDeleteDialog = () => {
+        if (isDeleting) {
+            return;
+        }
+
+        pendingDeleteId = null;
+        deleteDialog.hidden = true;
+        deleteDialog.setAttribute('aria-hidden', 'true');
+        deleteDialogConfirm.disabled = false;
+    };
+
+    const openDeleteDialog = (id, name, code) => {
+        pendingDeleteId = id;
+        const label = code ? `${code} ${name}` : name;
+        deleteDialogMessage.textContent = `確定要刪除廠商「${label}」嗎？此操作無法復原。`;
+        deleteDialog.hidden = false;
+        deleteDialog.setAttribute('aria-hidden', 'false');
+        deleteDialogConfirm.focus();
+    };
+
+    const confirmDelete = async () => {
+        if (!pendingDeleteId || isDeleting) {
+            return;
+        }
+
+        isDeleting = true;
+        deleteDialogConfirm.disabled = true;
+
+        try {
+            await api(`/api/vendors/${pendingDeleteId}`, { method: 'DELETE' });
+            pendingDeleteId = null;
+            isDeleting = false;
+            closeDeleteDialog();
+            showAlert('廠商已刪除');
+            await loadVendors();
+        } catch (error) {
+            isDeleting = false;
+            deleteDialogConfirm.disabled = false;
+            const message = error.payload?.message ?? error.message ?? '刪除失敗';
+            showAlert(message, 'error');
+        }
+    };
+
+    tableBody.addEventListener('click', (event) => {
         const button = event.target.closest('[data-action="delete"]');
         if (!button) {
             return;
         }
 
-        const id = Number(button.dataset.id);
+        openDeleteDialog(
+            Number(button.dataset.id),
+            button.dataset.name ?? '',
+            button.dataset.code ?? '',
+        );
+    });
 
-        if (!window.confirm('確定要刪除此帳號嗎？')) {
-            return;
-        }
+    deleteDialogCancel.addEventListener('click', closeDeleteDialog);
+    deleteDialogBackdrop.addEventListener('click', closeDeleteDialog);
+    deleteDialogConfirm.addEventListener('click', confirmDelete);
 
-        try {
-            await api(`/api/users/${id}`, { method: 'DELETE' });
-            showAlert('帳號已刪除');
-            await loadUsers();
-        } catch (error) {
-            const message =
-                error.payload?.errors?.user?.[0] ??
-                error.payload?.message ??
-                error.message ??
-                '刪除失敗';
-            showAlert(message, 'error');
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !deleteDialog.hidden) {
+            closeDeleteDialog();
         }
     });
 
@@ -264,7 +305,7 @@ function initUsersPage(root) {
         searchTimer = window.setTimeout(() => {
             search = searchInput.value.trim();
             page = 1;
-            loadUsers();
+            loadVendors();
         }, 300);
     });
 
@@ -276,13 +317,13 @@ function initUsersPage(root) {
 
         if (button.hasAttribute('data-page-prev') && page > 1) {
             page -= 1;
-            loadUsers();
+            loadVendors();
             return;
         }
 
         if (button.hasAttribute('data-page-next') && page < lastPage) {
             page += 1;
-            loadUsers();
+            loadVendors();
             return;
         }
 
@@ -290,15 +331,15 @@ function initUsersPage(root) {
             const nextPage = Number(button.dataset.page);
             if (nextPage !== page && nextPage >= 1 && nextPage <= lastPage) {
                 page = nextPage;
-                loadUsers();
+                loadVendors();
             }
         }
     });
 
-    loadUsers();
+    loadVendors();
 }
 
-const page = document.querySelector('[data-users-page]');
+const page = document.querySelector('[data-vendors-page]');
 if (page) {
-    initUsersPage(page);
+    initVendorsPage(page);
 }

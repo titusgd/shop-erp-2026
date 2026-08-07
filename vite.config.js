@@ -10,7 +10,11 @@ export default defineConfig({
                 'resources/css/app.css',
                 'resources/js/app.js',
                 'resources/js/users.js',
+                'resources/js/users-create.js',
                 'resources/js/users-edit.js',
+                'resources/js/vendors.js',
+                'resources/js/vendors-create.js',
+                'resources/js/vendors-edit.js',
             ],
             refresh: true,
             fonts: [

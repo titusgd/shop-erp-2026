@@ -40,6 +40,16 @@ class UserManagementTest extends TestCase
             ->assertSee('staff01');
     }
 
+    public function test_authenticated_users_can_view_create_page(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get(route('users.create'))
+            ->assertOk()
+            ->assertSee('新增帳號');
+    }
+
     public function test_users_can_be_listed_via_api(): void
     {
         $actor = User::factory()->create([

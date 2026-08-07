@@ -12,6 +12,11 @@ class UserController extends Controller
         return view('users.index');
     }
 
+    public function create(): View
+    {
+        return view('users.create');
+    }
+
     public function edit(User $user): View
     {
         return view('users.edit', [
