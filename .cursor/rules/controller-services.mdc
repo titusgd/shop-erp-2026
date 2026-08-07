@@ -1,0 +1,55 @@
+---
+description: Controller 精簡，業務邏輯放在 app/Services
+globs: app/Http/Controllers/**/*.php,app/Services/**/*.php
+alwaysApply: false
+---
+
+# Controller 與 Service 分層
+
+撰寫 Controller 時不要把業務邏輯全塞在 Controller；可重用或具業務意義的處理抽到 `app/Services/`。
+
+## 職責劃分
+
+| 層級 | 負責 | 不負責 |
+|------|------|--------|
+| Controller | 接收 request、呼叫 Service、回傳 response（JSON／view） | 複雜查詢組裝、商業規則、多步驟流程 |
+| Service（`app/Services/*`） | 業務邏輯、資料組裝、交易流程、呼叫 Repository／Model | HTTP 細節（request／response 格式可在 Controller 處理） |
+
+## 原則
+
+- Controller 方法保持精簡：驗證（或 Form Request）→ 呼叫 Service → 回傳結果
+- 新增／修改／刪除／列表／明細等業務流程寫在對應 Service
+- Service 依領域命名，例如 `ProductService`、`OrderService`，放在 `app/Services/`
+- 同一領域的邏輯集中在同一 Service，避免散落在多個 Controller
+
+## 範例
+
+```php
+// ❌ BAD：邏輯全在 Controller
+public function store(Request $request)
+{
+    $data = $request->validated();
+    // 大量計算、關聯寫入、狀態判斷…
+    $product = Product::create($data);
+    // …
+}
+
+// ✅ GOOD：Controller 委派 Service
+public function store(StoreProductRequest $request, ProductService $products)
+{
+    $product = $products->create($request->validated());
+
+    return response()->json($product, 201);
+}
+```
+
+```php
+// app/Services/ProductService.php
+class ProductService
+{
+    public function create(array $data): Product
+    {
+        // 業務邏輯在此
+    }
+}
+```

@@ -1,0 +1,33 @@
+---
+description: CRUD 操作優先以 AJAX 與 API 實作
+alwaysApply: true
+---
+
+# CRUD：AJAX + API 優先
+
+設計與實作資料的新增、修改、刪除、列表、明細時，以 AJAX 呼叫 API 為主，避免傳統整頁 form POST／redirect。
+
+## 預設做法
+
+| 操作 | 做法 |
+|------|------|
+| 列表 | API 回傳 JSON；前端 AJAX 載入並渲染 |
+| 明細 | API 依 ID 取單筆；前端 AJAX 載入 |
+| 新增／修改 | 前端表單以 AJAX 送 API；成功後更新 UI 或導向 |
+| 刪除 | AJAX 呼叫 API；成功後從列表移除或重新整理資料 |
+
+## 原則
+
+- 後端提供明確的 API 端點（JSON request／response），前端透過 `fetch`／Axios 等呼叫
+- 頁面負責呈現與互動，不要用整頁重新載入完成 CRUD
+- 驗證錯誤、權限錯誤由 API 回傳狀態碼與訊息，前端顯示回饋
+- 僅在明確需要（列印頁、匯出、OAuth callback 等）時才用傳統整頁流程
+
+## 範例方向
+
+```text
+✅ GOOD：GET /api/products → 列表；POST /api/products → 新增；
+         PUT /api/products/{id} → 修改；DELETE /api/products/{id} → 刪除
+
+❌ BAD：每個操作都 form submit 到 web route 再 redirect 回列表頁
+```

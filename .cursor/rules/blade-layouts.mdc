@@ -1,0 +1,41 @@
+---
+description: Blade 版面拆分與 x-component 慣例
+globs: **/*.blade.php
+alwaysApply: false
+---
+
+# Blade Layouts & Components
+
+撰寫 Blade 時拆分共用區塊，減少重複，優先使用 `<x-` 元件語法。
+
+## Layout 拆分
+
+- 共用區塊拆成獨立檔案，例如：`header.blade.php`、`sidebar.blade.php`、`footer.blade.php`
+- 頁面本身只保留該頁特有內容，不要複製整段導覽／側欄／頁腳
+- 建議結構：
+  - `resources/views/layouts/app.blade.php` — 主版型
+  - `resources/views/components/` — 可重用元件（header、sidebar 等）
+
+## 優先使用 `<x-`
+
+```blade
+{{-- ❌ BAD：@include 重複拼版，或把整段 HTML 貼進每一頁 --}}
+@include('partials.header')
+@include('partials.sidebar')
+
+{{-- ✅ GOOD：匿名／類別元件 --}}
+<x-layouts.app>
+    <x-slot:title>商品列表</x-slot:title>
+    {{-- 頁面內容 --}}
+</x-layouts.app>
+
+{{-- ✅ GOOD：區塊元件 --}}
+<x-header />
+<x-sidebar :active="$activeMenu" />
+```
+
+## 實作原則
+
+- 重複出現兩次以上的標記／區塊，抽成 `resources/views/components/` 下的元件
+- 透過 props 與 `<x-slot>` 傳入差異內容，避免複製後再微調
+- 新頁面預設套用既有 layout 元件，不要另起一套完整 HTML 骨架

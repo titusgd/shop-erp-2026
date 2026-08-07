@@ -1,0 +1,27 @@
+---
+description: 異動 Blade／JS／CSS 後必須執行 npm run build
+alwaysApply: true
+---
+
+# 前端資源異動後建置
+
+每次修改、新增或刪除以下檔案後，必須在工作目錄執行 `npm run build`，再結束該次回覆：
+
+- `**/*.blade.php`
+- `**/*.{js,mjs,cjs}`
+- `**/*.{css,scss}`
+
+## 原則
+
+- 同一回合若異動多個上述檔案，建置一次即可
+- 建置失敗時先排查並修復，不要略過
+- 僅改後端 PHP（非 Blade）、設定、migration 等且未動到上述檔案時，不必執行
+
+## 範例
+
+```text
+✅ GOOD：改完 resources/views/users/index.blade.php 後執行 npm run build
+✅ GOOD：改完 resources/js/app.js 與 resources/css/app.css 後執行一次 npm run build
+
+❌ BAD：改完 Blade／JS／CSS 就結束回覆，未執行 npm run build
+```
