@@ -8,19 +8,19 @@
         data-index-url="{{ route('users.index') }}"
     >
         <section class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-                <h2 class="text-2xl font-semibold tracking-tight text-slate-900">編輯帳號</h2>
+            <div class="min-w-0">
+                <h2 class="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">編輯帳號</h2>
                 <p class="mt-1 text-sm text-slate-500">更新帳號資料；密碼留空表示不變更。</p>
             </div>
             <a
                 href="{{ route('users.index') }}"
-                class="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                class="inline-flex w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:w-auto"
             >
                 返回列表
             </a>
         </section>
 
-        <section class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-8">
             <form data-user-form class="space-y-4">
                 <div>
                     <label for="user-name" class="mb-1.5 block text-sm font-medium text-slate-700">姓名</label>
@@ -95,17 +95,17 @@
 
                 <p class="hidden text-sm text-red-600" data-error="form"></p>
 
-                <div class="flex justify-end gap-2 pt-2">
+                <div class="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
                     <a
                         href="{{ route('users.index') }}"
-                        class="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        class="inline-flex w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:w-auto"
                     >
                         取消
                     </a>
                     <button
                         type="submit"
                         data-submit
-                        class="rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                        class="w-full rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                     >
                         儲存
                     </button>
@@ -116,7 +116,7 @@
         <div
             data-alert
             hidden
-            class="fixed bottom-4 right-4 z-40 max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg"
+            class="fixed inset-x-4 bottom-4 z-40 rounded-lg border px-4 py-3 text-sm shadow-lg sm:inset-x-auto sm:right-4 sm:max-w-sm"
             role="status"
         ></div>
     </div>

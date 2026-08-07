@@ -42,8 +42,8 @@ function initUserEditPage(root) {
         alertBox.textContent = message;
         alertBox.className =
             type === 'success'
-                ? 'fixed bottom-4 right-4 z-40 max-w-sm rounded-lg border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-800 shadow-lg'
-                : 'fixed bottom-4 right-4 z-40 max-w-sm rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-lg';
+                ? 'fixed inset-x-4 bottom-4 z-40 rounded-lg border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-800 shadow-lg sm:inset-x-auto sm:right-4 sm:max-w-sm'
+                : 'fixed inset-x-4 bottom-4 z-40 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-lg sm:inset-x-auto sm:right-4 sm:max-w-sm';
     };
 
     const clearErrors = () => {
