@@ -36,4 +36,28 @@ function initMobileNav() {
     });
 }
 
+function initNavGroups() {
+    document.querySelectorAll('[data-nav-group]').forEach((group) => {
+        const toggle = group.querySelector('[data-nav-group-toggle]');
+        const panel = group.querySelector('[data-nav-group-panel]');
+        const chevron = group.querySelector('[data-nav-group-chevron]');
+
+        if (!toggle || !panel) {
+            return;
+        }
+
+        const setOpen = (open) => {
+            group.dataset.open = open ? 'true' : 'false';
+            toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            panel.classList.toggle('hidden', !open);
+            chevron?.classList.toggle('rotate-180', open);
+        };
+
+        toggle.addEventListener('click', () => {
+            setOpen(group.dataset.open !== 'true');
+        });
+    });
+}
+
 initMobileNav();
+initNavGroups();
