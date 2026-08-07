@@ -19,6 +19,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('vendors', VendorController::class)->names('api.vendors');
     Route::apiResource('product-units', ProductUnitController::class)->names('api.product-units');
     Route::apiResource('warehouse-types', WarehouseTypeController::class)->names('api.warehouse-types');
+    Route::get('warehouses/{warehouse}/histories', [WarehouseController::class, 'histories'])
+        ->name('api.warehouses.histories');
     Route::apiResource('warehouses', WarehouseController::class)->names('api.warehouses');
     Route::apiResource('cities', CityController::class)->names('api.cities');
     Route::apiResource('districts', DistrictController::class)->names('api.districts');

@@ -1,4 +1,5 @@
 import { initSearchableMultiSelect } from './components/searchable-multi-select';
+import { initAddressLocationFields } from './components/address-location-fields';
 
 const csrfToken = () =>
     document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
@@ -39,6 +40,9 @@ const FIELD_TAB_MAP = {
     contact_name: 'contact',
     phone: 'contact',
     email: 'contact',
+    postal_code: 'contact',
+    city_id: 'contact',
+    district_id: 'contact',
     address: 'contact',
     notes: 'other',
 };
@@ -48,12 +52,17 @@ const activeTabClass =
 const inactiveTabClass =
     'whitespace-nowrap border-b-2 border-transparent px-3 py-3 text-sm font-medium text-slate-500 transition hover:border-slate-300 hover:text-slate-700';
 
-function collectWarehousePayload(form, typeSelect) {
+function collectWarehousePayload(form, typeSelect, locationFields) {
+    const location = locationFields.getValues();
+
     return {
         name: form.querySelector('[data-field="name"]').value.trim(),
         contact_name: form.querySelector('[data-field="contact_name"]').value.trim(),
         phone: form.querySelector('[data-field="phone"]').value.trim(),
         email: form.querySelector('[data-field="email"]').value.trim(),
+        postal_code: form.querySelector('[data-field="postal_code"]').value.trim(),
+        city_id: location.city_id,
+        district_id: location.district_id,
         address: form.querySelector('[data-field="address"]').value.trim(),
         notes: form.querySelector('[data-field="notes"]').value.trim(),
         is_active: form.querySelector('[data-field="is_active"]').checked,
@@ -136,6 +145,9 @@ function initWarehouseCreatePage(root) {
         noResultLabel: '找不到符合的倉庫類型',
     });
 
+    const locationRoot = root.querySelector('[data-address-location-fields]');
+    const locationFields = initAddressLocationFields(locationRoot, api);
+
     const showAlert = (message, type = 'error') => {
         alertBox.hidden = false;
         alertBox.textContent = message;
@@ -183,7 +195,7 @@ function initWarehouseCreatePage(root) {
         event.preventDefault();
         clearErrors();
 
-        const payload = collectWarehousePayload(form, typeSelect);
+        const payload = collectWarehousePayload(form, typeSelect, locationFields);
         submitButton.disabled = true;
 
         try {

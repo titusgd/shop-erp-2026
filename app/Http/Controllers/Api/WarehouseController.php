@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Warehouses\StoreWarehouseRequest;
 use App\Http\Requests\Warehouses\UpdateWarehouseRequest;
+use App\Http\Resources\WarehouseHistoryResource;
 use App\Http\Resources\WarehouseResource;
 use App\Models\Warehouse;
 use App\Services\WarehouseService;
@@ -38,7 +39,7 @@ class WarehouseController extends Controller
 
     public function show(Warehouse $warehouse): WarehouseResource
     {
-        return new WarehouseResource($warehouse->load('warehouseTypes'));
+        return new WarehouseResource($warehouse->load(['warehouseTypes', 'city', 'district', 'creator', 'updater']));
     }
 
     public function update(UpdateWarehouseRequest $request, Warehouse $warehouse): WarehouseResource
@@ -46,6 +47,11 @@ class WarehouseController extends Controller
         $warehouse = $this->warehouses->update($warehouse, $request->validated());
 
         return new WarehouseResource($warehouse);
+    }
+
+    public function histories(Warehouse $warehouse): AnonymousResourceCollection
+    {
+        return WarehouseHistoryResource::collection($this->warehouses->histories($warehouse));
     }
 
     public function destroy(Warehouse $warehouse): Response

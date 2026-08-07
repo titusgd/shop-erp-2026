@@ -44,6 +44,7 @@ Route::middleware('auth')->group(function () {
     Route::get('warehouses', [WarehouseController::class, 'index'])->name('warehouses.index');
     Route::get('warehouses/create', [WarehouseController::class, 'create'])->name('warehouses.create');
     Route::get('warehouses/{warehouse}/edit', [WarehouseController::class, 'edit'])->name('warehouses.edit');
+    Route::get('warehouses/{warehouse}/histories', [WarehouseController::class, 'histories'])->name('warehouses.histories');
 
     Route::get('cities', [CityController::class, 'index'])->name('cities.index');
     Route::get('cities/create', [CityController::class, 'create'])->name('cities.create');

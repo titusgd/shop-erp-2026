@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Warehouses;
 
+use App\Models\City;
+use App\Models\District;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Models\WarehouseType;
@@ -39,9 +41,15 @@ class WarehouseManagementTest extends TestCase
             ->assertSee('基本資料')
             ->assertSee('聯絡資訊')
             ->assertSee('其他')
+            ->assertSee('系統資訊')
             ->assertSee('倉庫名稱')
             ->assertSee('倉庫類型')
-            ->assertSee('聯絡人');
+            ->assertSee('聯絡人')
+            ->assertSee('郵遞區號')
+            ->assertSee('縣市')
+            ->assertSee('區域')
+            ->assertSee('輸入關鍵字搜尋縣市')
+            ->assertSee('系統資訊將於儲存後產生');
     }
 
     public function test_authenticated_users_can_view_edit_page(): void
@@ -58,9 +66,33 @@ class WarehouseManagementTest extends TestCase
             ->assertSee('基本資料')
             ->assertSee('聯絡資訊')
             ->assertSee('其他')
+            ->assertSee('系統資訊')
+            ->assertSee('建立人員')
+            ->assertSee('建立時間')
+            ->assertSee('修改人員')
+            ->assertSee('修改日期')
+            ->assertSee('修改歷程')
+            ->assertSee('檢視修改歷程')
+            ->assertSee('data-open-histories-modal', false)
+            ->assertSee('data-histories-modal', false)
             ->assertSee('測試倉庫')
             ->assertSee('系統編號')
             ->assertSee($warehouse->fresh()->code);
+    }
+
+    public function test_authenticated_users_can_view_histories_page(): void
+    {
+        $user = User::factory()->create();
+        $warehouse = Warehouse::factory()->create([
+            'name' => '歷程倉庫',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('warehouses.histories', $warehouse))
+            ->assertOk()
+            ->assertSee('修改歷程')
+            ->assertSee('歷程倉庫')
+            ->assertSee('返回編輯');
     }
 
     public function test_warehouses_can_be_listed_via_api(): void
@@ -270,5 +302,135 @@ class WarehouseManagementTest extends TestCase
             ->assertOk()
             ->assertSee('倉庫類型')
             ->assertSee('寄售倉');
+    }
+
+    public function test_warehouses_can_be_created_with_location_fields(): void
+    {
+        $user = User::factory()->create();
+        $city = City::factory()->create(['name' => '臺北市']);
+        $district = District::factory()->create([
+            'city_id' => $city->id,
+            'name' => '中正區',
+        ]);
+
+        $this->actingAs($user)
+            ->postJson('/api/warehouses', [
+                'name' => '地址倉庫',
+                'postal_code' => '100',
+                'city_id' => $city->id,
+                'district_id' => $district->id,
+                'address' => '重慶南路一段122號',
+                'is_active' => true,
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.postal_code', '100')
+            ->assertJsonPath('data.city_id', $city->id)
+            ->assertJsonPath('data.district_id', $district->id)
+            ->assertJsonPath('data.city.name', '臺北市')
+            ->assertJsonPath('data.district.name', '中正區');
+
+        $this->assertDatabaseHas('warehouses', [
+            'name' => '地址倉庫',
+            'postal_code' => '100',
+            'city_id' => $city->id,
+            'district_id' => $district->id,
+            'address' => '重慶南路一段122號',
+        ]);
+    }
+
+    public function test_warehouse_district_must_belong_to_selected_city(): void
+    {
+        $user = User::factory()->create();
+        $cityA = City::factory()->create(['name' => '臺北市']);
+        $cityB = City::factory()->create(['name' => '新北市']);
+        $districtB = District::factory()->create([
+            'city_id' => $cityB->id,
+            'name' => '板橋區',
+        ]);
+
+        $this->actingAs($user)
+            ->postJson('/api/warehouses', [
+                'name' => '錯誤區域倉庫',
+                'city_id' => $cityA->id,
+                'district_id' => $districtB->id,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['district_id']);
+    }
+
+    public function test_warehouse_create_records_creator_and_history(): void
+    {
+        $user = User::factory()->create(['name' => '倉管小明']);
+
+        $response = $this->actingAs($user)
+            ->postJson('/api/warehouses', [
+                'name' => '稽核倉庫',
+                'is_active' => true,
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.creator.name', '倉管小明')
+            ->assertJsonPath('data.updater.name', '倉管小明');
+
+        $warehouseId = $response->json('data.id');
+
+        $this->assertDatabaseHas('warehouses', [
+            'id' => $warehouseId,
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+
+        $this->assertDatabaseHas('warehouse_histories', [
+            'warehouse_id' => $warehouseId,
+            'user_id' => $user->id,
+            'action' => 'created',
+        ]);
+
+        $this->actingAs($user)
+            ->getJson("/api/warehouses/{$warehouseId}/histories")
+            ->assertOk()
+            ->assertJsonPath('data.0.action', 'created')
+            ->assertJsonPath('data.0.user.name', '倉管小明');
+    }
+
+    public function test_warehouse_update_records_updater_and_history_changes(): void
+    {
+        $creator = User::factory()->create(['name' => '建立者']);
+        $updater = User::factory()->create(['name' => '修改者']);
+
+        $warehouseId = $this->actingAs($creator)
+            ->postJson('/api/warehouses', [
+                'name' => '原倉庫名稱',
+                'is_active' => true,
+            ])
+            ->assertCreated()
+            ->json('data.id');
+
+        $this->actingAs($updater)
+            ->putJson("/api/warehouses/{$warehouseId}", [
+                'name' => '新倉庫名稱',
+                'is_active' => true,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.name', '新倉庫名稱')
+            ->assertJsonPath('data.updater.name', '修改者');
+
+        $this->assertDatabaseHas('warehouses', [
+            'id' => $warehouseId,
+            'created_by' => $creator->id,
+            'updated_by' => $updater->id,
+            'name' => '新倉庫名稱',
+        ]);
+
+        $this->actingAs($updater)
+            ->getJson("/api/warehouses/{$warehouseId}/histories")
+            ->assertOk()
+            ->assertJsonPath('data.0.action', 'updated')
+            ->assertJsonPath('data.0.user.name', '修改者')
+            ->assertJsonFragment([
+                'field' => 'name',
+                'label' => '倉庫名稱',
+                'old' => '原倉庫名稱',
+                'new' => '新倉庫名稱',
+            ]);
     }
 }

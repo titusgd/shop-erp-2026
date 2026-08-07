@@ -19,9 +19,16 @@ class WarehouseController extends Controller
 
     public function edit(Warehouse $warehouse): View
     {
-        $warehouse->load('warehouseTypes');
+        $warehouse->load(['warehouseTypes', 'city', 'district', 'creator', 'updater']);
 
         return view('warehouses.edit', [
+            'warehouse' => $warehouse,
+        ]);
+    }
+
+    public function histories(Warehouse $warehouse): View
+    {
+        return view('warehouses.histories', [
             'warehouse' => $warehouse,
         ]);
     }

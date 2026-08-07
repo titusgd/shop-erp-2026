@@ -1,4 +1,5 @@
 import { initSearchableMultiSelect } from './components/searchable-multi-select';
+import { initAddressLocationFields } from './components/address-location-fields';
 
 const csrfToken = () =>
     document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
@@ -32,6 +33,122 @@ async function api(url, options = {}) {
     return payload;
 }
 
+
+const escapeHtml = (value) =>
+    String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+
+function formatHistoryValue(value) {
+    if (value === null || value === undefined || value === '') {
+        return '（空）';
+    }
+
+    return String(value);
+}
+
+function initHistoriesModal(root, warehouseId) {
+    const openButton = root.querySelector('[data-open-histories-modal]');
+    const modal = root.querySelector('[data-histories-modal]');
+    const list = root.querySelector('[data-histories-modal-list]');
+    const meta = root.querySelector('[data-histories-modal-meta]');
+    const backdrop = root.querySelector('[data-histories-modal-backdrop]');
+    const closeButtons = [...root.querySelectorAll('[data-histories-modal-close]')];
+
+    if (!openButton || !modal || !list || !meta) {
+        return;
+    }
+
+    const closeModal = () => {
+        modal.hidden = true;
+        modal.setAttribute('aria-hidden', 'true');
+    };
+
+    const renderHistories = (histories) => {
+        meta.textContent = `共 ${histories.length} 筆`;
+
+        if (!histories.length) {
+            list.innerHTML =
+                '<li class="px-5 py-8 text-center text-sm text-slate-500 sm:px-6">目前尚無修改歷程</li>';
+            return;
+        }
+
+        list.innerHTML = histories
+            .map((history) => {
+                const userName = history.user?.name || '系統';
+                const changes = Array.isArray(history.changes) ? history.changes : [];
+                const changeHtml = changes.length
+                    ? `<ul class="mt-2 space-y-1 text-sm text-slate-600">${changes
+                          .map(
+                              (change) => `
+                                <li>
+                                    <span class="font-medium text-slate-800">${escapeHtml(change.label || change.field)}</span>
+                                    ：${escapeHtml(formatHistoryValue(change.old))}
+                                    →
+                                    ${escapeHtml(formatHistoryValue(change.new))}
+                                </li>
+                            `,
+                          )
+                          .join('')}</ul>`
+                    : '<p class="mt-2 text-sm text-slate-500">無欄位變更明細</p>';
+
+                return `
+                    <li class="px-5 py-4 sm:px-6">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-medium text-teal-800">
+                                    ${escapeHtml(history.action_label || history.action)}
+                                </span>
+                                <span class="text-sm font-medium text-slate-900">${escapeHtml(userName)}</span>
+                            </div>
+                            <time class="text-xs text-slate-500">${escapeHtml(history.created_at || '')}</time>
+                        </div>
+                        ${changeHtml}
+                    </li>
+                `;
+            })
+            .join('');
+    };
+
+    const openModal = async () => {
+        modal.hidden = false;
+        modal.setAttribute('aria-hidden', 'false');
+        meta.textContent = '載入中…';
+        list.innerHTML =
+            '<li class="px-5 py-8 text-center text-sm text-slate-500 sm:px-6">載入中…</li>';
+
+        try {
+            const payload = await api(`/api/warehouses/${warehouseId}/histories`);
+            renderHistories(payload.data ?? []);
+        } catch (error) {
+            meta.textContent = '載入失敗';
+            list.innerHTML =
+                '<li class="px-5 py-8 text-center text-sm text-red-600 sm:px-6">載入修改歷程失敗，請稍後再試</li>';
+        }
+
+        closeButtons[0]?.focus();
+    };
+
+    openButton.addEventListener('click', () => {
+        openModal();
+    });
+
+    closeButtons.forEach((button) => {
+        button.addEventListener('click', closeModal);
+    });
+
+    backdrop?.addEventListener('click', closeModal);
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !modal.hidden) {
+            closeModal();
+        }
+    });
+}
+
 const FIELD_TAB_MAP = {
     name: 'basic',
     warehouse_type_ids: 'basic',
@@ -39,6 +156,9 @@ const FIELD_TAB_MAP = {
     contact_name: 'contact',
     phone: 'contact',
     email: 'contact',
+    postal_code: 'contact',
+    city_id: 'contact',
+    district_id: 'contact',
     address: 'contact',
     notes: 'other',
 };
@@ -48,12 +168,17 @@ const activeTabClass =
 const inactiveTabClass =
     'whitespace-nowrap border-b-2 border-transparent px-3 py-3 text-sm font-medium text-slate-500 transition hover:border-slate-300 hover:text-slate-700';
 
-function collectWarehousePayload(form, typeSelect) {
+function collectWarehousePayload(form, typeSelect, locationFields) {
+    const location = locationFields.getValues();
+
     return {
         name: form.querySelector('[data-field="name"]').value.trim(),
         contact_name: form.querySelector('[data-field="contact_name"]').value.trim(),
         phone: form.querySelector('[data-field="phone"]').value.trim(),
         email: form.querySelector('[data-field="email"]').value.trim(),
+        postal_code: form.querySelector('[data-field="postal_code"]').value.trim(),
+        city_id: location.city_id,
+        district_id: location.district_id,
         address: form.querySelector('[data-field="address"]').value.trim(),
         notes: form.querySelector('[data-field="notes"]').value.trim(),
         is_active: form.querySelector('[data-field="is_active"]').checked,
@@ -137,6 +262,9 @@ function initWarehouseEditPage(root) {
         noResultLabel: '找不到符合的倉庫類型',
     });
 
+    const locationRoot = root.querySelector('[data-address-location-fields]');
+    const locationFields = initAddressLocationFields(locationRoot, api);
+
     const showAlert = (message, type = 'error') => {
         alertBox.hidden = false;
         alertBox.textContent = message;
@@ -180,11 +308,13 @@ function initWarehouseEditPage(root) {
         }
     };
 
+    initHistoriesModal(root, warehouseId);
+
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
         clearErrors();
 
-        const payload = collectWarehousePayload(form, typeSelect);
+        const payload = collectWarehousePayload(form, typeSelect, locationFields);
         submitButton.disabled = true;
 
         try {

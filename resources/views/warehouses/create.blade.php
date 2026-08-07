@@ -59,6 +59,17 @@
                         >
                             其他
                         </button>
+                        <button
+                            type="button"
+                            role="tab"
+                            id="warehouse-tab-system"
+                            data-tab="system"
+                            aria-controls="warehouse-panel-system"
+                            aria-selected="false"
+                            class="whitespace-nowrap border-b-2 border-transparent px-3 py-3 text-sm font-medium text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+                        >
+                            系統資訊
+                        </button>
                     </nav>
                 </div>
 
@@ -162,6 +173,8 @@
                                 </div>
                             </div>
 
+                            <x-address-location-fields id-prefix="warehouse" />
+
                             <div>
                                 <label for="warehouse-address" class="mb-1.5 block text-sm font-medium text-slate-700">
                                     地址
@@ -200,6 +213,19 @@
                                 class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
                             >{{ old('notes') }}</textarea>
                             <p class="mt-1 hidden text-sm text-red-600" data-error="notes"></p>
+                        </div>
+                    </div>
+
+                    <div
+                        id="warehouse-panel-system"
+                        role="tabpanel"
+                        aria-labelledby="warehouse-tab-system"
+                        data-tab-panel="system"
+                        hidden
+                    >
+                        <div class="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center">
+                            <p class="text-sm font-medium text-slate-700">系統資訊將於儲存後產生</p>
+                            <p class="mt-1 text-sm text-slate-500">建立人員、建立時間、修改人員、修改日期與修改歷程會在倉庫建立後顯示。</p>
                         </div>
                     </div>
 

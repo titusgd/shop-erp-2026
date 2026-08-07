@@ -24,6 +24,7 @@ export default defineConfig({
                 'resources/js/warehouses.js',
                 'resources/js/warehouses-create.js',
                 'resources/js/warehouses-edit.js',
+                'resources/js/warehouses-histories.js',
                 'resources/js/cities.js',
                 'resources/js/cities-create.js',
                 'resources/js/cities-edit.js',
