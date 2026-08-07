@@ -1,9 +1,5 @@
 <?php
 
-use App\Http\Controllers\Api\ProductUnitController as ApiProductUnitController;
-use App\Http\Controllers\Api\UserController as ApiUserController;
-use App\Http\Controllers\Api\VendorController as ApiVendorController;
-use App\Http\Controllers\Api\WarehouseController as ApiWarehouseController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProductUnitController;
@@ -43,11 +39,4 @@ Route::middleware('auth')->group(function () {
     Route::get('warehouses/{warehouse}/edit', [WarehouseController::class, 'edit'])->name('warehouses.edit');
 
     Route::post('logout', [LoginController::class, 'destroy'])->name('logout');
-
-    Route::prefix('api')->group(function () {
-        Route::apiResource('users', ApiUserController::class)->names('api.users');
-        Route::apiResource('vendors', ApiVendorController::class)->names('api.vendors');
-        Route::apiResource('product-units', ApiProductUnitController::class)->names('api.product-units');
-        Route::apiResource('warehouses', ApiWarehouseController::class)->names('api.warehouses');
-    });
 });
