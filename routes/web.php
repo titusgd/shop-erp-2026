@@ -3,11 +3,13 @@
 use App\Http\Controllers\Api\ProductUnitController as ApiProductUnitController;
 use App\Http\Controllers\Api\UserController as ApiUserController;
 use App\Http\Controllers\Api\VendorController as ApiVendorController;
+use App\Http\Controllers\Api\WarehouseController as ApiWarehouseController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProductUnitController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VendorController;
+use App\Http\Controllers\WarehouseController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -36,11 +38,16 @@ Route::middleware('auth')->group(function () {
     Route::get('product-units/create', [ProductUnitController::class, 'create'])->name('product-units.create');
     Route::get('product-units/{product_unit}/edit', [ProductUnitController::class, 'edit'])->name('product-units.edit');
 
+    Route::get('warehouses', [WarehouseController::class, 'index'])->name('warehouses.index');
+    Route::get('warehouses/create', [WarehouseController::class, 'create'])->name('warehouses.create');
+    Route::get('warehouses/{warehouse}/edit', [WarehouseController::class, 'edit'])->name('warehouses.edit');
+
     Route::post('logout', [LoginController::class, 'destroy'])->name('logout');
 
     Route::prefix('api')->group(function () {
         Route::apiResource('users', ApiUserController::class)->names('api.users');
         Route::apiResource('vendors', ApiVendorController::class)->names('api.vendors');
         Route::apiResource('product-units', ApiProductUnitController::class)->names('api.product-units');
+        Route::apiResource('warehouses', ApiWarehouseController::class)->names('api.warehouses');
     });
 });

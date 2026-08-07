@@ -18,6 +18,9 @@ export default defineConfig({
                 'resources/js/product-units.js',
                 'resources/js/product-units-create.js',
                 'resources/js/product-units-edit.js',
+                'resources/js/warehouses.js',
+                'resources/js/warehouses-create.js',
+                'resources/js/warehouses-edit.js',
             ],
             refresh: true,
             fonts: [

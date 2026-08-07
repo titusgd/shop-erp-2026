@@ -49,7 +49,7 @@
                 [
                     'key' => 'warehouses',
                     'label' => '倉庫管理',
-                    'href' => '#',
+                    'route' => 'warehouses.index',
                     'icon' => 'home-modern',
                 ],
             ],
@@ -257,6 +257,7 @@
         'users' => 'users.*',
         'vendors' => 'vendors.*',
         'product-units' => 'product-units.*',
+        'warehouses' => 'warehouses.*',
     ];
 
     $isItemActive = function (array $item) use ($active, $routePrefixes): bool {
