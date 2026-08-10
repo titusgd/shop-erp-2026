@@ -37,7 +37,7 @@
                 [
                     'key' => 'product-categories',
                     'label' => '商品分類',
-                    'href' => '#',
+                    'route' => 'product-categories.index',
                     'icon' => 'folder',
                 ],
                 [
@@ -277,6 +277,7 @@
     $routePrefixes = [
         'users' => 'users.*',
         'vendors' => 'vendors.*',
+        'product-categories' => 'product-categories.*',
         'product-units' => 'product-units.*',
         'warehouse-types' => 'warehouse-types.*',
         'warehouses' => 'warehouses.*',

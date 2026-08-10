@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CityController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DistrictController;
+use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProductUnitController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VendorController;
@@ -32,6 +33,10 @@ Route::middleware('auth')->group(function () {
     Route::get('vendors', [VendorController::class, 'index'])->name('vendors.index');
     Route::get('vendors/create', [VendorController::class, 'create'])->name('vendors.create');
     Route::get('vendors/{vendor}/edit', [VendorController::class, 'edit'])->name('vendors.edit');
+
+    Route::get('product-categories', [ProductCategoryController::class, 'index'])->name('product-categories.index');
+    Route::get('product-categories/create', [ProductCategoryController::class, 'create'])->name('product-categories.create');
+    Route::get('product-categories/{product_category}/edit', [ProductCategoryController::class, 'edit'])->name('product-categories.edit');
 
     Route::get('product-units', [ProductUnitController::class, 'index'])->name('product-units.index');
     Route::get('product-units/create', [ProductUnitController::class, 'create'])->name('product-units.create');

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\CityController;
 use App\Http\Controllers\Api\DistrictController;
+use App\Http\Controllers\Api\ProductCategoryController;
 use App\Http\Controllers\Api\ProductUnitController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\VendorController;
@@ -17,6 +18,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::apiResource('users', UserController::class)->names('api.users');
     Route::apiResource('vendors', VendorController::class)->names('api.vendors');
+    Route::apiResource('product-categories', ProductCategoryController::class)->names('api.product-categories');
     Route::apiResource('product-units', ProductUnitController::class)->names('api.product-units');
     Route::apiResource('warehouse-types', WarehouseTypeController::class)->names('api.warehouse-types');
     Route::get('warehouses/{warehouse}/histories', [WarehouseController::class, 'histories'])
