@@ -107,6 +107,8 @@
                     </div>
                 </div>
 
+                <x-address-location-fields id-prefix="vendor" />
+
                 <div>
                     <label for="vendor-address" class="mb-1.5 block text-sm font-medium text-slate-700">
                         地址

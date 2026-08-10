@@ -17,8 +17,17 @@ class VendorController extends Controller
         return view('vendors.create');
     }
 
+    public function show(Vendor $vendor): View
+    {
+        return view('vendors.show', [
+            'vendor' => $vendor,
+        ]);
+    }
+
     public function edit(Vendor $vendor): View
     {
+        $vendor->load(['city', 'district']);
+
         return view('vendors.edit', [
             'vendor' => $vendor,
         ]);

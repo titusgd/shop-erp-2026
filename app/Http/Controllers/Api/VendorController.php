@@ -38,6 +38,8 @@ class VendorController extends Controller
 
     public function show(Vendor $vendor): VendorResource
     {
+        $vendor->load(['city', 'district']);
+
         return new VendorResource($vendor);
     }
 

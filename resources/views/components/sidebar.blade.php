@@ -25,14 +25,28 @@
                 [
                     'key' => 'customers',
                     'label' => '客戶管理',
-                    'href' => '#',
+                    'route' => 'customers.index',
                     'icon' => 'users',
                 ],
                 [
+                    'type' => 'subgroup',
                     'key' => 'products',
                     'label' => '商品管理',
-                    'href' => '#',
                     'icon' => 'cube',
+                    'children' => [
+                        [
+                            'key' => 'products-create',
+                            'label' => '新增商品',
+                            'route' => 'products.create',
+                            'active_routes' => ['products.create'],
+                        ],
+                        [
+                            'key' => 'products-list',
+                            'label' => '商品列表',
+                            'route' => 'products.index',
+                            'active_routes' => ['products.index', 'products.show', 'products.edit'],
+                        ],
+                    ],
                 ],
                 [
                     'key' => 'product-categories',
@@ -277,6 +291,8 @@
     $routePrefixes = [
         'users' => 'users.*',
         'vendors' => 'vendors.*',
+        'customers' => 'customers.*',
+        'products' => 'products.*',
         'product-categories' => 'product-categories.*',
         'product-units' => 'product-units.*',
         'warehouse-types' => 'warehouse-types.*',
@@ -287,6 +303,10 @@
 
     $isItemActive = function (array $item) use ($active, $routePrefixes): bool {
         if ($active === ($item['key'] ?? null)) {
+            return true;
+        }
+
+        if (! empty($item['active_routes']) && request()->routeIs(...$item['active_routes'])) {
             return true;
         }
 
@@ -301,8 +321,28 @@
             && request()->routeIs($routePrefixes[$key]);
     };
 
-    $isGroupOpen = function (array $group) use ($isItemActive): bool {
-        foreach ($group['children'] as $child) {
+    $isGroupOpen = function (array $group) use (&$isGroupOpen, $isItemActive, $active, $routePrefixes): bool {
+        if ($active === ($group['key'] ?? null)) {
+            return true;
+        }
+
+        $groupKey = $group['key'] ?? null;
+
+        if ($groupKey !== null && isset($routePrefixes[$groupKey]) && request()->routeIs($routePrefixes[$groupKey])) {
+            return true;
+        }
+
+        foreach ($group['children'] ?? [] as $child) {
+            $childType = $child['type'] ?? 'link';
+
+            if (in_array($childType, ['group', 'subgroup'], true)) {
+                if ($isGroupOpen($child)) {
+                    return true;
+                }
+
+                continue;
+            }
+
             if ($isItemActive($child)) {
                 return true;
             }
@@ -319,13 +359,19 @@
         return $item['href'] ?? '#';
     };
 
-    $renderNavLink = function (array $item, bool $isActive) use ($renderIcon, $resolveHref): string {
+    $renderNavLink = function (array $item, bool $isActive, bool $nested = false) use ($renderIcon, $resolveHref): string {
         $classes = $isActive
             ? 'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition bg-teal-50 text-teal-800'
             : 'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition text-slate-600 hover:bg-slate-50 hover:text-slate-900';
 
+        if ($nested) {
+            $classes .= ' pl-11';
+        }
+
+        $iconHtml = ! empty($item['icon']) ? $renderIcon($item['icon']) : '';
+
         return '<a href="'.e($resolveHref($item)).'" class="'.$classes.'">'
-            .$renderIcon($item['icon'] ?? '')
+            .$iconHtml
             .'<span>'.e($item['label']).'</span>'
             .'</a>';
     };

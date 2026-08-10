@@ -38,9 +38,9 @@ function initMobileNav() {
 
 function initNavGroups() {
     document.querySelectorAll('[data-nav-group]').forEach((group) => {
-        const toggle = group.querySelector('[data-nav-group-toggle]');
-        const panel = group.querySelector('[data-nav-group-panel]');
-        const chevron = group.querySelector('[data-nav-group-chevron]');
+        const toggle = group.querySelector(':scope > [data-nav-group-toggle]');
+        const panel = group.querySelector(':scope > [data-nav-group-panel]');
+        const chevron = toggle?.querySelector('[data-nav-group-chevron]');
 
         if (!toggle || !panel) {
             return;

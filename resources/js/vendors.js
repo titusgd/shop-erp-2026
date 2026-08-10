@@ -181,6 +181,7 @@ function initVendorsPage(root) {
                         <td class="px-4 py-3 sm:px-5">${statusBadge(vendor.is_active)}</td>
                         <td class="px-4 py-3 text-right sm:px-5">
                             <div class="inline-flex items-center gap-1">
+                                <a href="/vendors/${vendor.id}" class="rounded-lg px-2.5 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50">檢視</a>
                                 <a href="/vendors/${vendor.id}/edit" class="rounded-lg px-2.5 py-1.5 text-sm font-medium text-teal-700 transition hover:bg-teal-50">編輯</a>
                                 <button
                                     type="button"

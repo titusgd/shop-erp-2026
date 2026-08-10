@@ -19,6 +19,7 @@ class VendorService
         $perPage = max(1, min($perPage, 50));
 
         return Vendor::query()
+            ->with(['city', 'district'])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($query) use ($search) {
                     $query->where('name', 'like', "%{$search}%")
@@ -26,7 +27,9 @@ class VendorService
                         ->orWhere('tax_id', 'like', "%{$search}%")
                         ->orWhere('contact_name', 'like', "%{$search}%")
                         ->orWhere('phone', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%");
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('postal_code', 'like', "%{$search}%")
+                        ->orWhere('address', 'like', "%{$search}%");
                 });
             })
             ->orderBy('id')
@@ -41,6 +44,9 @@ class VendorService
      *     contact_name?: string|null,
      *     phone?: string|null,
      *     email?: string|null,
+     *     postal_code?: string|null,
+     *     city_id?: int|null,
+     *     district_id?: int|null,
      *     address?: string|null,
      *     notes?: string|null,
      *     is_active?: bool|null
@@ -56,6 +62,9 @@ class VendorService
                 'contact_name' => $this->nullableString($data['contact_name'] ?? null),
                 'phone' => $this->nullableString($data['phone'] ?? null),
                 'email' => $this->nullableString($data['email'] ?? null),
+                'postal_code' => $this->nullableString($data['postal_code'] ?? null),
+                'city_id' => $data['city_id'] ?? null,
+                'district_id' => $data['district_id'] ?? null,
                 'address' => $this->nullableString($data['address'] ?? null),
                 'notes' => $this->nullableString($data['notes'] ?? null),
                 'is_active' => (bool) ($data['is_active'] ?? true),
@@ -64,7 +73,7 @@ class VendorService
             $vendor->code = $this->formatSystemCode($vendor->id);
             $vendor->save();
 
-            return $vendor->refresh();
+            return $vendor->refresh()->load(['city', 'district']);
         });
     }
 
@@ -75,6 +84,9 @@ class VendorService
      *     contact_name?: string|null,
      *     phone?: string|null,
      *     email?: string|null,
+     *     postal_code?: string|null,
+     *     city_id?: int|null,
+     *     district_id?: int|null,
      *     address?: string|null,
      *     notes?: string|null,
      *     is_active?: bool|null
@@ -88,13 +100,16 @@ class VendorService
             'contact_name' => $this->nullableString($data['contact_name'] ?? null),
             'phone' => $this->nullableString($data['phone'] ?? null),
             'email' => $this->nullableString($data['email'] ?? null),
+            'postal_code' => $this->nullableString($data['postal_code'] ?? null),
+            'city_id' => $data['city_id'] ?? null,
+            'district_id' => $data['district_id'] ?? null,
             'address' => $this->nullableString($data['address'] ?? null),
             'notes' => $this->nullableString($data['notes'] ?? null),
             'is_active' => (bool) ($data['is_active'] ?? true),
         ]);
         $vendor->save();
 
-        return $vendor->refresh();
+        return $vendor->refresh()->load(['city', 'district']);
     }
 
     public function delete(Vendor $vendor): void

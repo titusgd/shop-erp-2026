@@ -118,6 +118,15 @@
                     </div>
                 </div>
 
+                <x-address-location-fields
+                    id-prefix="vendor"
+                    :postal-code="$vendor->postal_code"
+                    :city-id="$vendor->city_id"
+                    :city-name="$vendor->city?->name"
+                    :district-id="$vendor->district_id"
+                    :district-name="$vendor->district?->name"
+                />
+
                 <div>
                     <label for="vendor-address" class="mb-1.5 block text-sm font-medium text-slate-700">
                         地址

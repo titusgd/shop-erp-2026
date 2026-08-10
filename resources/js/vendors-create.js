@@ -1,3 +1,5 @@
+import { initAddressLocationFields } from './components/address-location-fields';
+
 const csrfToken = () =>
     document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
 
@@ -30,13 +32,18 @@ async function api(url, options = {}) {
     return payload;
 }
 
-function collectVendorPayload(form) {
+function collectVendorPayload(form, locationFields) {
+    const location = locationFields.getValues();
+
     return {
         name: form.querySelector('[data-field="name"]').value.trim(),
         tax_id: form.querySelector('[data-field="tax_id"]').value.trim(),
         contact_name: form.querySelector('[data-field="contact_name"]').value.trim(),
         phone: form.querySelector('[data-field="phone"]').value.trim(),
         email: form.querySelector('[data-field="email"]').value.trim(),
+        postal_code: form.querySelector('[data-field="postal_code"]').value.trim(),
+        city_id: location.city_id,
+        district_id: location.district_id,
         address: form.querySelector('[data-field="address"]').value.trim(),
         notes: form.querySelector('[data-field="notes"]').value.trim(),
         is_active: form.querySelector('[data-field="is_active"]').checked,
@@ -48,6 +55,8 @@ function initVendorCreatePage(root) {
     const form = root.querySelector('[data-vendor-form]');
     const submitButton = root.querySelector('[data-submit]');
     const alertBox = root.querySelector('[data-alert]');
+    const locationRoot = root.querySelector('[data-address-location-fields]');
+    const locationFields = initAddressLocationFields(locationRoot, api);
 
     const showAlert = (message, type = 'error') => {
         alertBox.hidden = false;
@@ -87,7 +96,7 @@ function initVendorCreatePage(root) {
         event.preventDefault();
         clearErrors();
 
-        const payload = collectVendorPayload(form);
+        const payload = collectVendorPayload(form, locationFields);
         submitButton.disabled = true;
 
         try {
