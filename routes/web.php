@@ -8,6 +8,7 @@ use App\Http\Controllers\DistrictController;
 use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductUnitController;
+use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VendorController;
 use App\Http\Controllers\WarehouseController;
@@ -63,6 +64,11 @@ Route::middleware('auth')->group(function () {
     Route::get('warehouses/create', [WarehouseController::class, 'create'])->name('warehouses.create');
     Route::get('warehouses/{warehouse}/edit', [WarehouseController::class, 'edit'])->name('warehouses.edit');
     Route::get('warehouses/{warehouse}/histories', [WarehouseController::class, 'histories'])->name('warehouses.histories');
+
+    Route::get('purchase-orders', [PurchaseOrderController::class, 'index'])->name('purchase-orders.index');
+    Route::get('purchase-orders/create', [PurchaseOrderController::class, 'create'])->name('purchase-orders.create');
+    Route::get('purchase-orders/{purchase_order}', [PurchaseOrderController::class, 'show'])->name('purchase-orders.show');
+    Route::get('purchase-orders/{purchase_order}/edit', [PurchaseOrderController::class, 'edit'])->name('purchase-orders.edit');
 
     Route::get('cities', [CityController::class, 'index'])->name('cities.index');
     Route::get('cities/create', [CityController::class, 'create'])->name('cities.create');

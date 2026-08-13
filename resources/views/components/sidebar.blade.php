@@ -94,7 +94,7 @@
                 [
                     'key' => 'purchase-orders',
                     'label' => '採購單',
-                    'href' => '#',
+                    'route' => 'purchase-orders.index',
                     'icon' => 'clipboard-document-list',
                 ],
                 [
@@ -297,6 +297,7 @@
         'product-units' => 'product-units.*',
         'warehouse-types' => 'warehouse-types.*',
         'warehouses' => 'warehouses.*',
+        'purchase-orders' => 'purchase-orders.*',
         'cities' => 'cities.*',
         'districts' => 'districts.*',
     ];
