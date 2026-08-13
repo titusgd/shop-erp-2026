@@ -141,13 +141,19 @@ function formatNotes(notes) {
     return `<p class="whitespace-pre-wrap break-words">${escapeHtml(notes)}</p>`;
 }
 
-function formatMoney(value) {
+function parsePriceNumber(value) {
     if (value === null || value === undefined || value === '') {
-        return '<span class="text-slate-500">—</span>';
+        return null;
     }
 
     const number = Number(value);
-    if (!Number.isFinite(number)) {
+
+    return Number.isFinite(number) ? number : null;
+}
+
+function formatMoney(value) {
+    const number = parsePriceNumber(value);
+    if (number === null) {
         return '<span class="text-slate-500">—</span>';
     }
 
@@ -157,6 +163,54 @@ function formatMoney(value) {
             maximumFractionDigits: 2,
         }),
     );
+}
+
+function purchasePriceExtremes(vendors) {
+    const prices = (vendors ?? [])
+        .map((vendor) => parsePriceNumber(vendor.estimated_purchase_price))
+        .filter((price) => price !== null);
+
+    if (prices.length < 2) {
+        return { min: null, max: null };
+    }
+
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+
+    if (min === max) {
+        return { min: null, max: null };
+    }
+
+    return { min, max };
+}
+
+function purchasePriceMarkup(value, min, max) {
+    const number = parsePriceNumber(value);
+    const amount = formatMoney(value);
+
+    if (number === null || min === null || max === null) {
+        return `<span class="text-sm text-slate-900">${amount}</span>`;
+    }
+
+    if (number === max) {
+        return `
+            <span class="inline-flex flex-wrap items-center gap-2">
+                <span class="text-sm font-semibold text-rose-600">${amount}</span>
+                <span class="inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700">最高</span>
+            </span>
+        `;
+    }
+
+    if (number === min) {
+        return `
+            <span class="inline-flex flex-wrap items-center gap-2">
+                <span class="text-sm font-semibold text-teal-700">${amount}</span>
+                <span class="inline-flex rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-800">最低</span>
+            </span>
+        `;
+    }
+
+    return `<span class="text-sm text-slate-900">${amount}</span>`;
 }
 
 function initProductShowPage(root) {
@@ -196,6 +250,8 @@ function initProductShowPage(root) {
             </dl>
         `;
 
+        const { min: minPurchasePrice, max: maxPurchasePrice } = purchasePriceExtremes(product.vendors);
+
         priceDetail.innerHTML = `
             <div class="space-y-6">
                 <div>
@@ -208,7 +264,7 @@ function initProductShowPage(root) {
                                         (vendor) => `
                                             <div class="grid gap-1 sm:grid-cols-[8rem_minmax(0,1fr)] sm:gap-4">
                                                 <dt class="text-sm font-medium text-slate-500">${escapeHtml(vendor.name)}</dt>
-                                                <dd class="text-sm text-slate-900">${formatMoney(vendor.estimated_purchase_price)}</dd>
+                                                <dd>${purchasePriceMarkup(vendor.estimated_purchase_price, minPurchasePrice, maxPurchasePrice)}</dd>
                                             </div>
                                         `,
                                     )
