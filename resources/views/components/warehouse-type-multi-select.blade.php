@@ -12,7 +12,7 @@
 
 <div
     data-warehouse-type-multi-select
-    data-initial-selected="{{ e($initial->toJson(JSON_UNESCAPED_UNICODE)) }}"
+    data-initial-selected='@json($initial)'
 >
     <label for="warehouse-type-search" class="mb-1.5 block text-sm font-medium text-slate-700">
         倉庫類型

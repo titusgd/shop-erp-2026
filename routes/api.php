@@ -22,6 +22,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('users', UserController::class)->names('api.users');
     Route::apiResource('vendors', VendorController::class)->names('api.vendors');
     Route::apiResource('customers', CustomerController::class)->names('api.customers');
+    Route::get('products/{product}/price-histories', [ProductController::class, 'priceHistories'])
+        ->name('api.products.price-histories');
     Route::apiResource('products', ProductController::class)->names('api.products');
     Route::apiResource('product-categories', ProductCategoryController::class)->names('api.product-categories');
     Route::apiResource('product-units', ProductUnitController::class)->names('api.product-units');

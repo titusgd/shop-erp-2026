@@ -36,9 +36,123 @@
             </div>
         </section>
 
-        <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-8">
-            <div data-vendor-detail class="space-y-5">
-                <p class="text-sm text-slate-500">載入中…</p>
+        <section class="rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div class="border-b border-slate-200 px-4 sm:px-8" data-tabs>
+                <nav class="-mb-px flex gap-1 overflow-x-auto" role="tablist" aria-label="廠商資料分頁">
+                    <button
+                        type="button"
+                        role="tab"
+                        id="vendor-tab-overview"
+                        data-tab="overview"
+                        aria-controls="vendor-panel-basic vendor-panel-contact vendor-panel-payment vendor-panel-other"
+                        aria-selected="true"
+                        class="whitespace-nowrap border-b-2 border-teal-700 px-3 py-3 text-sm font-medium text-teal-800 transition hover:text-teal-900"
+                    >
+                        總覽
+                    </button>
+                    <button
+                        type="button"
+                        role="tab"
+                        id="vendor-tab-basic"
+                        data-tab="basic"
+                        aria-controls="vendor-panel-basic"
+                        aria-selected="false"
+                        class="whitespace-nowrap border-b-2 border-transparent px-3 py-3 text-sm font-medium text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+                    >
+                        基本資料
+                    </button>
+                    <button
+                        type="button"
+                        role="tab"
+                        id="vendor-tab-contact"
+                        data-tab="contact"
+                        aria-controls="vendor-panel-contact"
+                        aria-selected="false"
+                        class="whitespace-nowrap border-b-2 border-transparent px-3 py-3 text-sm font-medium text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+                    >
+                        聯絡資訊
+                    </button>
+                    <button
+                        type="button"
+                        role="tab"
+                        id="vendor-tab-payment"
+                        data-tab="payment"
+                        aria-controls="vendor-panel-payment"
+                        aria-selected="false"
+                        class="whitespace-nowrap border-b-2 border-transparent px-3 py-3 text-sm font-medium text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+                    >
+                        帳款設定
+                    </button>
+                    <button
+                        type="button"
+                        role="tab"
+                        id="vendor-tab-other"
+                        data-tab="other"
+                        aria-controls="vendor-panel-other"
+                        aria-selected="false"
+                        class="whitespace-nowrap border-b-2 border-transparent px-3 py-3 text-sm font-medium text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+                    >
+                        其他
+                    </button>
+                </nav>
+            </div>
+
+            <div class="divide-y divide-slate-100 p-4 sm:p-8" data-tab-panels>
+                <div
+                    id="vendor-panel-basic"
+                    role="tabpanel"
+                    aria-labelledby="vendor-tab-basic"
+                    data-tab-panel="basic"
+                    data-overview-spacing="pb-6"
+                    class="pb-6"
+                >
+                    <h3 data-tab-heading class="mb-4 text-sm font-semibold text-slate-900">基本資料</h3>
+                    <div data-vendor-detail-basic class="space-y-5">
+                        <p class="text-sm text-slate-500">載入中…</p>
+                    </div>
+                </div>
+
+                <div
+                    id="vendor-panel-contact"
+                    role="tabpanel"
+                    aria-labelledby="vendor-tab-contact"
+                    data-tab-panel="contact"
+                    data-overview-spacing="py-6"
+                    class="py-6"
+                >
+                    <h3 data-tab-heading class="mb-4 text-sm font-semibold text-slate-900">聯絡資訊</h3>
+                    <div data-vendor-detail-contact class="space-y-5">
+                        <p class="text-sm text-slate-500">載入中…</p>
+                    </div>
+                </div>
+
+                <div
+                    id="vendor-panel-payment"
+                    role="tabpanel"
+                    aria-labelledby="vendor-tab-payment"
+                    data-tab-panel="payment"
+                    data-overview-spacing="py-6"
+                    class="py-6"
+                >
+                    <h3 data-tab-heading class="mb-4 text-sm font-semibold text-slate-900">帳款設定</h3>
+                    <div data-vendor-detail-payment class="space-y-5">
+                        <p class="text-sm text-slate-500">載入中…</p>
+                    </div>
+                </div>
+
+                <div
+                    id="vendor-panel-other"
+                    role="tabpanel"
+                    aria-labelledby="vendor-tab-other"
+                    data-tab-panel="other"
+                    data-overview-spacing="pt-6"
+                    class="pt-6"
+                >
+                    <h3 data-tab-heading class="mb-4 text-sm font-semibold text-slate-900">其他</h3>
+                    <div data-vendor-detail-other class="space-y-5">
+                        <p class="text-sm text-slate-500">載入中…</p>
+                    </div>
+                </div>
             </div>
         </section>
 

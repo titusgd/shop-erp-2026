@@ -1,4 +1,5 @@
 import { initSearchableMultiSelect } from './components/searchable-multi-select';
+import { initVendorPurchasePriceFields, parsePrice } from './components/vendor-purchase-prices';
 
 const csrfToken = () =>
     document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
@@ -40,7 +41,22 @@ async function api(url, options = {}) {
     return payload;
 }
 
-function collectProductPayload(form, vendorSelect) {
+const FIELD_TAB_MAP = {
+    product_category_id: 'basic',
+    product_unit_id: 'basic',
+    vendor_ids: 'basic',
+    name: 'basic',
+    notes: 'basic',
+    is_active: 'basic',
+    estimated_selling_price: 'price',
+};
+
+const activeTabClass =
+    'whitespace-nowrap border-b-2 border-teal-700 px-3 py-3 text-sm font-medium text-teal-800 transition hover:text-teal-900';
+const inactiveTabClass =
+    'whitespace-nowrap border-b-2 border-transparent px-3 py-3 text-sm font-medium text-slate-500 transition hover:border-slate-300 hover:text-slate-700';
+
+function collectProductPayload(form, vendorSelect, vendorPrices) {
     const categoryId = form.querySelector('[data-field="product_category_id"]').value;
     const unitId = form.querySelector('[data-field="product_unit_id"]').value;
 
@@ -48,10 +64,77 @@ function collectProductPayload(form, vendorSelect) {
         product_category_id: categoryId ? Number(categoryId) : null,
         product_unit_id: unitId ? Number(unitId) : null,
         vendor_ids: vendorSelect.getSelectedIds(),
+        vendor_purchase_prices: vendorPrices.collect(),
         name: form.querySelector('[data-field="name"]').value.trim(),
         notes: form.querySelector('[data-field="notes"]').value.trim(),
+        estimated_selling_price: parsePrice(form.querySelector('[data-field="estimated_selling_price"]').value),
         is_active: form.querySelector('[data-field="is_active"]').checked,
     };
+}
+
+function initTabs(root) {
+    const tabs = [...root.querySelectorAll('[data-tab]')];
+    const panels = [...root.querySelectorAll('[data-tab-panel]')];
+
+    const activateTab = (tabKey) => {
+        tabs.forEach((tab) => {
+            const isActive = tab.dataset.tab === tabKey;
+            tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+            tab.className = isActive ? activeTabClass : inactiveTabClass;
+            tab.tabIndex = isActive ? 0 : -1;
+        });
+
+        panels.forEach((panel) => {
+            panel.hidden = panel.dataset.tabPanel !== tabKey;
+        });
+    };
+
+    tabs.forEach((tab) => {
+        tab.addEventListener('click', () => activateTab(tab.dataset.tab));
+    });
+
+    root.querySelector('[data-tabs]')?.addEventListener('keydown', (event) => {
+        const currentIndex = tabs.findIndex((tab) => tab.getAttribute('aria-selected') === 'true');
+        if (currentIndex < 0) {
+            return;
+        }
+
+        let nextIndex = null;
+
+        if (event.key === 'ArrowRight') {
+            nextIndex = (currentIndex + 1) % tabs.length;
+        } else if (event.key === 'ArrowLeft') {
+            nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+        } else if (event.key === 'Home') {
+            nextIndex = 0;
+        } else if (event.key === 'End') {
+            nextIndex = tabs.length - 1;
+        }
+
+        if (nextIndex === null) {
+            return;
+        }
+
+        event.preventDefault();
+        activateTab(tabs[nextIndex].dataset.tab);
+        tabs[nextIndex].focus();
+    });
+
+    activateTab('basic');
+
+    return { activateTab };
+}
+
+function resolveErrorTab(field) {
+    if (field.startsWith('vendor_ids')) {
+        return 'basic';
+    }
+
+    if (field.startsWith('vendor_purchase_prices') || field === 'estimated_selling_price') {
+        return 'price';
+    }
+
+    return FIELD_TAB_MAP[field] ?? 'basic';
 }
 
 async function loadSelectOptions(url, select, placeholder, selectedId = null, labelFn) {
@@ -80,15 +163,19 @@ function initProductCreatePage(root) {
     const form = root.querySelector('[data-product-form]');
     const submitButton = root.querySelector('[data-submit]');
     const alertBox = root.querySelector('[data-alert]');
+    const { activateTab } = initTabs(root);
     const categorySelect = form.querySelector('[data-field="product_category_id"]');
     const unitSelect = form.querySelector('[data-field="product_unit_id"]');
+    const vendorPrices = initVendorPurchasePriceFields(root.querySelector('[data-vendor-purchase-prices]'));
     const vendorSelectRoot = root.querySelector('[data-vendor-multi-select]');
     const vendorSelect = initSearchableMultiSelect(vendorSelectRoot, {
         endpoint: '/api/vendors',
         queryParams: { active_only: '1' },
         emptyLabel: '目前沒有可選的供應商',
         noResultLabel: '找不到符合的供應商',
+        onChange: (items) => vendorPrices.render(items),
     });
+    vendorPrices.render(vendorSelect.getSelectedItems());
 
     const showAlert = (message, type = 'error') => {
         alertBox.hidden = false;
@@ -109,12 +196,19 @@ function initProductCreatePage(root) {
     const showErrors = (errors = {}, message = null) => {
         clearErrors();
 
+        const errorFields = Object.keys(errors);
+        if (errorFields.length > 0) {
+            activateTab(resolveErrorTab(errorFields[0]));
+        }
+
         Object.entries(errors).forEach(([field, messages]) => {
             const el =
                 form.querySelector(`[data-error="${field}"]`) ??
                 (field.startsWith('vendor_ids')
                     ? form.querySelector('[data-error="vendor_ids"]')
-                    : null);
+                    : field.startsWith('vendor_purchase_prices')
+                      ? form.querySelector(`[data-error="${field}"]`)
+                      : null);
             if (el) {
                 el.textContent = Array.isArray(messages) ? messages[0] : String(messages);
                 el.classList.remove('hidden');
@@ -151,7 +245,7 @@ function initProductCreatePage(root) {
         event.preventDefault();
         clearErrors();
 
-        const payload = collectProductPayload(form, vendorSelect);
+        const payload = collectProductPayload(form, vendorSelect, vendorPrices);
         submitButton.disabled = true;
 
         try {

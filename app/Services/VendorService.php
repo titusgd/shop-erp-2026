@@ -29,7 +29,9 @@ class VendorService
                         ->orWhere('phone', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%")
                         ->orWhere('postal_code', 'like', "%{$search}%")
-                        ->orWhere('address', 'like', "%{$search}%");
+                        ->orWhere('address', 'like', "%{$search}%")
+                        ->orWhere('remittance_bank', 'like', "%{$search}%")
+                        ->orWhere('remittance_account', 'like', "%{$search}%");
                 });
             })
             ->orderBy('id')
@@ -49,6 +51,9 @@ class VendorService
      *     district_id?: int|null,
      *     address?: string|null,
      *     notes?: string|null,
+     *     remittance_bank?: string|null,
+     *     remittance_account?: string|null,
+     *     settlement_method?: string|null,
      *     is_active?: bool|null
      * }  $data
      */
@@ -67,6 +72,9 @@ class VendorService
                 'district_id' => $data['district_id'] ?? null,
                 'address' => $this->nullableString($data['address'] ?? null),
                 'notes' => $this->nullableString($data['notes'] ?? null),
+                'remittance_bank' => $this->nullableString($data['remittance_bank'] ?? null),
+                'remittance_account' => $this->nullableString($data['remittance_account'] ?? null),
+                'settlement_method' => $this->nullableString($data['settlement_method'] ?? null),
                 'is_active' => (bool) ($data['is_active'] ?? true),
             ]);
 
@@ -89,6 +97,9 @@ class VendorService
      *     district_id?: int|null,
      *     address?: string|null,
      *     notes?: string|null,
+     *     remittance_bank?: string|null,
+     *     remittance_account?: string|null,
+     *     settlement_method?: string|null,
      *     is_active?: bool|null
      * }  $data
      */
@@ -105,6 +116,9 @@ class VendorService
             'district_id' => $data['district_id'] ?? null,
             'address' => $this->nullableString($data['address'] ?? null),
             'notes' => $this->nullableString($data['notes'] ?? null),
+            'remittance_bank' => $this->nullableString($data['remittance_bank'] ?? null),
+            'remittance_account' => $this->nullableString($data['remittance_account'] ?? null),
+            'settlement_method' => $this->nullableString($data['settlement_method'] ?? null),
             'is_active' => (bool) ($data['is_active'] ?? true),
         ]);
         $vendor->save();

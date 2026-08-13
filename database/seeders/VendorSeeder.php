@@ -23,6 +23,9 @@ class VendorSeeder extends Seeder
             'email' => 'contact@example.com',
             'address' => '台北市信義區信義路五段7號',
             'notes' => '示範廠商資料',
+            'remittance_bank' => '台灣銀行信義分行',
+            'remittance_account' => '123456789012',
+            'settlement_method' => 'monthly_30',
             'is_active' => true,
         ]);
 

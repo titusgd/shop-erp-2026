@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Vendor;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -36,6 +37,12 @@ class VendorResource extends JsonResource
             ] : null),
             'address' => $this->address,
             'notes' => $this->notes,
+            'remittance_bank' => $this->remittance_bank,
+            'remittance_account' => $this->remittance_account,
+            'settlement_method' => $this->settlement_method,
+            'settlement_method_label' => $this->settlement_method
+                ? (Vendor::settlementMethods()[$this->settlement_method] ?? $this->settlement_method)
+                : null,
             'is_active' => $this->is_active,
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),

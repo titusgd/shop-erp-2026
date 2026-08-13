@@ -37,6 +37,10 @@ class VendorManagementTest extends TestCase
             ->get(route('vendors.create'))
             ->assertOk()
             ->assertSee('新增廠商')
+            ->assertSee('基本資料')
+            ->assertSee('聯絡資訊')
+            ->assertSee('帳款設定')
+            ->assertSee('其他')
             ->assertSee('統一編號')
             ->assertDontSee('廠商代碼');
     }
@@ -53,6 +57,11 @@ class VendorManagementTest extends TestCase
             ->assertOk()
             ->assertSee('檢視廠商')
             ->assertSee('查看廠商主檔明細')
+            ->assertSee('總覽')
+            ->assertSee('基本資料')
+            ->assertSee('聯絡資訊')
+            ->assertSee('帳款設定')
+            ->assertSee('其他')
             ->assertSee('data-vendor-show-page', false)
             ->assertSee('編輯');
     }
@@ -68,6 +77,10 @@ class VendorManagementTest extends TestCase
             ->get(route('vendors.edit', $vendor))
             ->assertOk()
             ->assertSee('編輯廠商')
+            ->assertSee('基本資料')
+            ->assertSee('聯絡資訊')
+            ->assertSee('帳款設定')
+            ->assertSee('其他')
             ->assertSee('測試廠商')
             ->assertSee('系統編號')
             ->assertSee($vendor->fresh()->code);
@@ -291,5 +304,69 @@ class VendorManagementTest extends TestCase
             ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['district_id']);
+    }
+
+    public function test_vendors_can_be_created_with_payment_settings(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->postJson('/api/vendors', [
+                'name' => '帳款廠商',
+                'remittance_bank' => '台灣銀行信義分行',
+                'remittance_account' => '123456789012',
+                'settlement_method' => 'monthly_30',
+                'is_active' => true,
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.remittance_bank', '台灣銀行信義分行')
+            ->assertJsonPath('data.remittance_account', '123456789012')
+            ->assertJsonPath('data.settlement_method', 'monthly_30')
+            ->assertJsonPath('data.settlement_method_label', '月結 30 天');
+
+        $this->assertDatabaseHas('vendors', [
+            'name' => '帳款廠商',
+            'remittance_bank' => '台灣銀行信義分行',
+            'remittance_account' => '123456789012',
+            'settlement_method' => 'monthly_30',
+        ]);
+    }
+
+    public function test_vendors_can_be_updated_with_payment_settings(): void
+    {
+        $user = User::factory()->create();
+        $vendor = Vendor::factory()->create([
+            'name' => '舊帳款廠商',
+            'remittance_bank' => null,
+            'remittance_account' => null,
+            'settlement_method' => null,
+        ]);
+
+        $this->actingAs($user)
+            ->putJson("/api/vendors/{$vendor->id}", [
+                'name' => '舊帳款廠商',
+                'remittance_bank' => '第一銀行',
+                'remittance_account' => '987654321',
+                'settlement_method' => 'cash',
+                'is_active' => true,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.remittance_bank', '第一銀行')
+            ->assertJsonPath('data.remittance_account', '987654321')
+            ->assertJsonPath('data.settlement_method', 'cash')
+            ->assertJsonPath('data.settlement_method_label', '現金');
+    }
+
+    public function test_vendor_settlement_method_must_be_valid(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->postJson('/api/vendors', [
+                'name' => '無效結帳廠商',
+                'settlement_method' => 'invalid',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['settlement_method']);
     }
 }

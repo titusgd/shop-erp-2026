@@ -26,6 +26,9 @@ class VendorFactory extends Factory
             'email' => fake()->unique()->companyEmail(),
             'address' => fake()->address(),
             'notes' => fake()->optional()->sentence(),
+            'remittance_bank' => fake()->optional()->company(),
+            'remittance_account' => fake()->optional()->numerify('##########'),
+            'settlement_method' => fake()->optional()->randomElement(array_keys(Vendor::settlementMethods())),
             'is_active' => true,
         ];
     }

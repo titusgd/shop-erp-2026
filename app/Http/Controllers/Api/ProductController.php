@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Products\StoreProductRequest;
 use App\Http\Requests\Products\UpdateProductRequest;
+use App\Http\Resources\ProductPriceHistoryResource;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
 use App\Services\ProductService;
@@ -58,6 +59,15 @@ class ProductController extends Controller
         $product = $this->products->update($product, $request->validated());
 
         return new ProductResource($product);
+    }
+
+    public function priceHistories(Request $request, Product $product): AnonymousResourceCollection
+    {
+        $field = $request->string('field')->toString();
+
+        return ProductPriceHistoryResource::collection(
+            $this->products->priceHistories($product, $field !== '' ? $field : null),
+        );
     }
 
     public function destroy(Product $product): Response

@@ -33,13 +33,24 @@ class ProductResource extends JsonResource
                 'id' => $vendor->id,
                 'name' => $vendor->name,
                 'code' => $vendor->code,
+                'estimated_purchase_price' => $this->formatPrice($vendor->pivot?->estimated_purchase_price),
             ])->values()->all()),
             'name' => $this->name,
             'code' => $this->code,
             'notes' => $this->notes,
+            'estimated_selling_price' => $this->estimated_selling_price,
             'is_active' => $this->is_active,
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];
+    }
+
+    private function formatPrice(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return number_format((float) $value, 2, '.', '');
     }
 }

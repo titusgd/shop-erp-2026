@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'product_category_id',
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
     'name',
     'code',
     'notes',
+    'estimated_selling_price',
     'is_active',
 ])]
 class Product extends Model
@@ -28,6 +30,7 @@ class Product extends Model
     protected function casts(): array
     {
         return [
+            'estimated_selling_price' => 'decimal:2',
             'is_active' => 'boolean',
         ];
     }
@@ -53,6 +56,18 @@ class Product extends Model
      */
     public function vendors(): BelongsToMany
     {
-        return $this->belongsToMany(Vendor::class);
+        return $this->belongsToMany(Vendor::class)
+            ->withPivot('estimated_purchase_price')
+            ->withCasts([
+                'estimated_purchase_price' => 'decimal:2',
+            ]);
+    }
+
+    /**
+     * @return HasMany<ProductPriceHistory, $this>
+     */
+    public function priceHistories(): HasMany
+    {
+        return $this->hasMany(ProductPriceHistory::class)->latest('created_at')->latest('id');
     }
 }

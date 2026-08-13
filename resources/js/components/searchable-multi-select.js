@@ -38,6 +38,7 @@ async function fetchJson(url) {
  *   queryParams?: Record<string, string>,
  *   emptyLabel?: string,
  *   noResultLabel?: string,
+ *   onChange?: (items: Array<{id: number, name: string, code?: string|null}>) => void,
  * }} options
  */
 export function initSearchableMultiSelect(root, options) {
@@ -59,7 +60,8 @@ export function initSearchableMultiSelect(root, options) {
     let visibleOptions = [];
 
     try {
-        const initial = JSON.parse(root.dataset.initialSelected || '[]');
+        const initialRaw = root.dataset.initialSelected || '[]';
+        const initial = JSON.parse(initialRaw.replaceAll('&quot;', '"'));
         if (Array.isArray(initial)) {
             initial.forEach((item) => {
                 if (item?.id != null) {
@@ -187,6 +189,7 @@ export function initSearchableMultiSelect(root, options) {
             code: item.code ?? null,
         });
         renderSelected();
+        options.onChange?.([...selected.values()]);
         searchInput.value = '';
         highlightedIndex = -1;
         loadOptions('');
@@ -295,6 +298,7 @@ export function initSearchableMultiSelect(root, options) {
 
         selected.delete(Number(button.dataset.removeId));
         renderSelected();
+        options.onChange?.([...selected.values()]);
         if (!optionsList.hidden) {
             loadOptions(searchInput.value.trim());
         }

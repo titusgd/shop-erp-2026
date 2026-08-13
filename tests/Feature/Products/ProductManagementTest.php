@@ -38,6 +38,10 @@ class ProductManagementTest extends TestCase
             ->get(route('products.create'))
             ->assertOk()
             ->assertSee('新增商品')
+            ->assertSee('基本資料')
+            ->assertSee('價格')
+            ->assertSee('預計進價')
+            ->assertSee('預計售價')
             ->assertSee('商品分類')
             ->assertSee('商品單位')
             ->assertSee('商品名稱')
@@ -61,6 +65,11 @@ class ProductManagementTest extends TestCase
             ->assertSee('檢視商品')
             ->assertSee('查看商品主檔明細')
             ->assertSee('data-product-show-page', false)
+            ->assertSee('基本資料')
+            ->assertSee('價格')
+            ->assertSee('價格設定歷史')
+            ->assertSee('data-open-price-histories', false)
+            ->assertSee('data-price-histories-modal', false)
             ->assertSee('編輯');
     }
 
@@ -69,19 +78,36 @@ class ProductManagementTest extends TestCase
         $user = User::factory()->create();
         $category = ProductCategory::factory()->create(['name' => '飲料']);
         $unit = ProductUnit::factory()->create(['name' => '個']);
+        $vendor = Vendor::factory()->create(['name' => '泉源企業']);
         $product = Product::factory()->create([
             'product_category_id' => $category->id,
             'product_unit_id' => $unit->id,
             'name' => '礦泉水 600ml',
         ]);
+        $product->vendors()->attach($vendor->id);
 
         $this->actingAs($user)
             ->get(route('products.edit', $product))
             ->assertOk()
             ->assertSee('編輯商品')
+            ->assertSee('基本資料')
+            ->assertSee('價格')
+            ->assertSee('預計進價')
+            ->assertSee('預計售價')
+            ->assertSee('歷史列表')
+            ->assertSee('data-price-histories-pagination', false)
+            ->assertSee('歷史高價')
+            ->assertSee('歷史低價')
+            ->assertSee('區間範圍')
+            ->assertSee('起始日期')
+            ->assertSee('結束日期')
+            ->assertSee('data-open-price-histories', false)
+            ->assertSee('data-price-histories-modal', false)
             ->assertSee('礦泉水 600ml')
             ->assertSee('商品分類')
             ->assertSee('供應商')
+            ->assertSee('泉源企業')
+            ->assertSee('data-multi-select-selected', false)
             ->assertSee('系統編號')
             ->assertSee($product->fresh()->code);
     }
@@ -352,5 +378,282 @@ class ProductManagementTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['name'])
             ->assertJsonPath('errors.name.0', '此商品名稱已存在。');
+    }
+
+    public function test_products_can_be_created_with_estimated_prices_and_history(): void
+    {
+        $user = User::factory()->create(['name' => '商品小明']);
+        $category = ProductCategory::factory()->create();
+        $unit = ProductUnit::factory()->create();
+        $vendorA = Vendor::factory()->create(['name' => '泉源企業']);
+        $vendorB = Vendor::factory()->create(['name' => '綠葉貿易']);
+
+        $response = $this->actingAs($user)
+            ->postJson('/api/products', [
+                'product_category_id' => $category->id,
+                'product_unit_id' => $unit->id,
+                'vendor_ids' => [$vendorA->id, $vendorB->id],
+                'vendor_purchase_prices' => [
+                    $vendorA->id => 8.5,
+                    $vendorB->id => 9,
+                ],
+                'name' => '氣泡水 500ml',
+                'estimated_selling_price' => 15,
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.estimated_selling_price', '15.00')
+            ->assertJsonCount(2, 'data.vendors');
+
+        $productId = $response->json('data.id');
+        $vendors = collect($response->json('data.vendors'))->keyBy('id');
+
+        $this->assertSame('8.50', $vendors[$vendorA->id]['estimated_purchase_price']);
+        $this->assertSame('9.00', $vendors[$vendorB->id]['estimated_purchase_price']);
+
+        $this->assertDatabaseHas('products', [
+            'id' => $productId,
+            'estimated_selling_price' => '15.00',
+        ]);
+        $this->assertDatabaseHas('product_vendor', [
+            'product_id' => $productId,
+            'vendor_id' => $vendorA->id,
+            'estimated_purchase_price' => '8.50',
+        ]);
+        $this->assertDatabaseHas('product_vendor', [
+            'product_id' => $productId,
+            'vendor_id' => $vendorB->id,
+            'estimated_purchase_price' => '9.00',
+        ]);
+
+        $this->assertDatabaseHas('product_price_histories', [
+            'product_id' => $productId,
+            'user_id' => $user->id,
+            'action' => 'created',
+        ]);
+
+        $this->actingAs($user)
+            ->getJson("/api/products/{$productId}/price-histories")
+            ->assertOk()
+            ->assertJsonPath('data.0.action', 'created')
+            ->assertJsonPath('data.0.action_label', '設定')
+            ->assertJsonPath('data.0.user.name', '商品小明')
+            ->assertJsonFragment([
+                'field' => 'estimated_purchase_price',
+                'vendor_id' => $vendorA->id,
+                'vendor_name' => '泉源企業',
+                'label' => '預計進價（泉源企業）',
+                'old' => null,
+                'new' => '8.50',
+            ])
+            ->assertJsonFragment([
+                'field' => 'estimated_purchase_price',
+                'vendor_id' => $vendorB->id,
+                'vendor_name' => '綠葉貿易',
+                'label' => '預計進價（綠葉貿易）',
+                'old' => null,
+                'new' => '9.00',
+            ])
+            ->assertJsonFragment([
+                'field' => 'estimated_selling_price',
+                'label' => '預計售價',
+                'old' => null,
+                'new' => '15.00',
+            ]);
+    }
+
+    public function test_product_create_without_prices_does_not_record_history(): void
+    {
+        $user = User::factory()->create();
+        $category = ProductCategory::factory()->create();
+        $unit = ProductUnit::factory()->create();
+
+        $productId = $this->actingAs($user)
+            ->postJson('/api/products', [
+                'product_category_id' => $category->id,
+                'product_unit_id' => $unit->id,
+                'name' => '無價格商品',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.estimated_selling_price', null)
+            ->assertJsonPath('data.vendors', [])
+            ->json('data.id');
+
+        $this->assertDatabaseMissing('product_price_histories', [
+            'product_id' => $productId,
+        ]);
+    }
+
+    public function test_product_price_update_records_history_changes(): void
+    {
+        $user = User::factory()->create(['name' => '修改者']);
+        $category = ProductCategory::factory()->create();
+        $unit = ProductUnit::factory()->create();
+        $vendor = Vendor::factory()->create(['name' => '泉源企業']);
+        $product = Product::factory()->create([
+            'product_category_id' => $category->id,
+            'product_unit_id' => $unit->id,
+            'name' => '價格商品',
+            'estimated_selling_price' => 20,
+        ]);
+        $product->vendors()->attach($vendor->id, ['estimated_purchase_price' => 10]);
+
+        $this->actingAs($user)
+            ->putJson("/api/products/{$product->id}", [
+                'product_category_id' => $category->id,
+                'product_unit_id' => $unit->id,
+                'vendor_ids' => [$vendor->id],
+                'vendor_purchase_prices' => [
+                    $vendor->id => 12,
+                ],
+                'name' => '價格商品',
+                'estimated_selling_price' => 20,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.estimated_selling_price', '20.00')
+            ->assertJsonPath('data.vendors.0.estimated_purchase_price', '12.00');
+
+        $this->assertDatabaseHas('product_price_histories', [
+            'product_id' => $product->id,
+            'user_id' => $user->id,
+            'action' => 'updated',
+        ]);
+
+        $this->actingAs($user)
+            ->getJson("/api/products/{$product->id}/price-histories")
+            ->assertOk()
+            ->assertJsonPath('data.0.action', 'updated')
+            ->assertJsonPath('data.0.action_label', '調整')
+            ->assertJsonPath('data.0.user.name', '修改者')
+            ->assertJsonFragment([
+                'field' => 'estimated_purchase_price',
+                'vendor_id' => $vendor->id,
+                'label' => '預計進價（泉源企業）',
+                'old' => '10.00',
+                'new' => '12.00',
+            ])
+            ->assertJsonMissing([
+                'field' => 'estimated_selling_price',
+            ]);
+    }
+
+    public function test_product_update_without_price_change_does_not_record_history(): void
+    {
+        $user = User::factory()->create();
+        $category = ProductCategory::factory()->create();
+        $unit = ProductUnit::factory()->create();
+        $vendor = Vendor::factory()->create();
+        $product = Product::factory()->create([
+            'product_category_id' => $category->id,
+            'product_unit_id' => $unit->id,
+            'name' => '原商品名稱',
+            'estimated_selling_price' => 18,
+        ]);
+        $product->vendors()->attach($vendor->id, ['estimated_purchase_price' => 10]);
+
+        $this->actingAs($user)
+            ->putJson("/api/products/{$product->id}", [
+                'product_category_id' => $category->id,
+                'product_unit_id' => $unit->id,
+                'vendor_ids' => [$vendor->id],
+                'vendor_purchase_prices' => [
+                    $vendor->id => 10,
+                ],
+                'name' => '新商品名稱',
+                'estimated_selling_price' => 18,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.name', '新商品名稱');
+
+        $this->assertDatabaseMissing('product_price_histories', [
+            'product_id' => $product->id,
+        ]);
+    }
+
+    public function test_estimated_prices_cannot_be_negative(): void
+    {
+        $user = User::factory()->create();
+        $category = ProductCategory::factory()->create();
+        $unit = ProductUnit::factory()->create();
+        $vendor = Vendor::factory()->create();
+
+        $this->actingAs($user)
+            ->postJson('/api/products', [
+                'product_category_id' => $category->id,
+                'product_unit_id' => $unit->id,
+                'vendor_ids' => [$vendor->id],
+                'vendor_purchase_prices' => [
+                    $vendor->id => -1,
+                ],
+                'name' => '負價格商品',
+                'estimated_selling_price' => -5,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors([
+                "vendor_purchase_prices.{$vendor->id}",
+                'estimated_selling_price',
+            ])
+            ->assertJsonFragment(['預計進價不可為負數。'])
+            ->assertJsonPath('errors.estimated_selling_price.0', '預計售價不可為負數。');
+    }
+
+    public function test_price_histories_can_be_filtered_by_field(): void
+    {
+        $user = User::factory()->create();
+        $category = ProductCategory::factory()->create();
+        $unit = ProductUnit::factory()->create();
+        $vendor = Vendor::factory()->create(['name' => '泉源企業']);
+
+        $productId = $this->actingAs($user)
+            ->postJson('/api/products', [
+                'product_category_id' => $category->id,
+                'product_unit_id' => $unit->id,
+                'vendor_ids' => [$vendor->id],
+                'vendor_purchase_prices' => [
+                    $vendor->id => 8,
+                ],
+                'name' => '分欄歷史商品',
+                'estimated_selling_price' => 16,
+            ])
+            ->assertCreated()
+            ->json('data.id');
+
+        $this->actingAs($user)
+            ->putJson("/api/products/{$productId}", [
+                'product_category_id' => $category->id,
+                'product_unit_id' => $unit->id,
+                'vendor_ids' => [$vendor->id],
+                'vendor_purchase_prices' => [
+                    $vendor->id => 9,
+                ],
+                'name' => '分欄歷史商品',
+                'estimated_selling_price' => 16,
+            ])
+            ->assertOk();
+
+        $this->actingAs($user)
+            ->getJson("/api/products/{$productId}/price-histories?field=estimated_purchase_price")
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonFragment([
+                'field' => 'estimated_purchase_price',
+                'label' => '預計進價（泉源企業）',
+            ])
+            ->assertJsonMissing([
+                'field' => 'estimated_selling_price',
+            ]);
+
+        $this->actingAs($user)
+            ->getJson("/api/products/{$productId}/price-histories?field=estimated_selling_price")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonFragment([
+                'field' => 'estimated_selling_price',
+                'label' => '預計售價',
+                'old' => null,
+                'new' => '16.00',
+            ])
+            ->assertJsonMissing([
+                'field' => 'estimated_purchase_price',
+            ]);
     }
 }

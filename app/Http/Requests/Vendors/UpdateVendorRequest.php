@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Vendors;
 
+use App\Models\Vendor;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -15,7 +16,7 @@ class UpdateVendorRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $nullable = ['tax_id', 'contact_name', 'phone', 'email', 'postal_code', 'address', 'notes'];
+        $nullable = ['tax_id', 'contact_name', 'phone', 'email', 'postal_code', 'address', 'notes', 'remittance_bank', 'remittance_account', 'settlement_method'];
 
         foreach ($nullable as $field) {
             if ($this->has($field) && is_string($this->input($field)) && trim($this->input($field)) === '') {
@@ -57,6 +58,9 @@ class UpdateVendorRequest extends FormRequest
             ],
             'address' => ['nullable', 'string', 'max:500'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'remittance_bank' => ['nullable', 'string', 'max:255'],
+            'remittance_account' => ['nullable', 'string', 'max:50'],
+            'settlement_method' => ['nullable', 'string', Rule::in(array_keys(Vendor::settlementMethods()))],
             'is_active' => ['sometimes', 'boolean'],
         ];
     }
@@ -77,6 +81,9 @@ class UpdateVendorRequest extends FormRequest
             'district_id' => '區域',
             'address' => '地址',
             'notes' => '備註',
+            'remittance_bank' => '匯款銀行',
+            'remittance_account' => '匯款帳號',
+            'settlement_method' => '結帳方式',
             'is_active' => '啟用狀態',
         ];
     }

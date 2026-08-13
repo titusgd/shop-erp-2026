@@ -32,6 +32,85 @@ async function api(url, options = {}) {
     return payload;
 }
 
+const FIELD_TAB_MAP = {
+    name: 'basic',
+    tax_id: 'basic',
+    is_active: 'basic',
+    contact_name: 'contact',
+    phone: 'contact',
+    email: 'contact',
+    postal_code: 'contact',
+    city_id: 'contact',
+    district_id: 'contact',
+    address: 'contact',
+    remittance_bank: 'payment',
+    remittance_account: 'payment',
+    settlement_method: 'payment',
+    notes: 'other',
+};
+
+const activeTabClass =
+    'whitespace-nowrap border-b-2 border-teal-700 px-3 py-3 text-sm font-medium text-teal-800 transition hover:text-teal-900';
+const inactiveTabClass =
+    'whitespace-nowrap border-b-2 border-transparent px-3 py-3 text-sm font-medium text-slate-500 transition hover:border-slate-300 hover:text-slate-700';
+
+function initTabs(root) {
+    const tabs = [...root.querySelectorAll('[data-tab]')];
+    const panels = [...root.querySelectorAll('[data-tab-panel]')];
+
+    const activateTab = (tabKey) => {
+        tabs.forEach((tab) => {
+            const isActive = tab.dataset.tab === tabKey;
+            tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+            tab.className = isActive ? activeTabClass : inactiveTabClass;
+            tab.tabIndex = isActive ? 0 : -1;
+        });
+
+        panels.forEach((panel) => {
+            panel.hidden = panel.dataset.tabPanel !== tabKey;
+        });
+    };
+
+    tabs.forEach((tab) => {
+        tab.addEventListener('click', () => activateTab(tab.dataset.tab));
+    });
+
+    root.querySelector('[data-tabs]')?.addEventListener('keydown', (event) => {
+        const currentIndex = tabs.findIndex((tab) => tab.getAttribute('aria-selected') === 'true');
+        if (currentIndex < 0) {
+            return;
+        }
+
+        let nextIndex = null;
+
+        if (event.key === 'ArrowRight') {
+            nextIndex = (currentIndex + 1) % tabs.length;
+        } else if (event.key === 'ArrowLeft') {
+            nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+        } else if (event.key === 'Home') {
+            nextIndex = 0;
+        } else if (event.key === 'End') {
+            nextIndex = tabs.length - 1;
+        }
+
+        if (nextIndex === null) {
+            return;
+        }
+
+        event.preventDefault();
+        activateTab(tabs[nextIndex].dataset.tab);
+        tabs[nextIndex].focus();
+    });
+
+    activateTab('basic');
+
+    return { activateTab };
+}
+
+function resolveErrorTab(field) {
+    return FIELD_TAB_MAP[field] ?? 'basic';
+}
+
 function collectVendorPayload(form, locationFields) {
     const location = locationFields.getValues();
 
@@ -45,6 +124,9 @@ function collectVendorPayload(form, locationFields) {
         city_id: location.city_id,
         district_id: location.district_id,
         address: form.querySelector('[data-field="address"]').value.trim(),
+        remittance_bank: form.querySelector('[data-field="remittance_bank"]').value.trim(),
+        remittance_account: form.querySelector('[data-field="remittance_account"]').value.trim(),
+        settlement_method: form.querySelector('[data-field="settlement_method"]:checked')?.value.trim() ?? '',
         notes: form.querySelector('[data-field="notes"]').value.trim(),
         is_active: form.querySelector('[data-field="is_active"]').checked,
     };
@@ -55,6 +137,7 @@ function initVendorCreatePage(root) {
     const form = root.querySelector('[data-vendor-form]');
     const submitButton = root.querySelector('[data-submit]');
     const alertBox = root.querySelector('[data-alert]');
+    const { activateTab } = initTabs(root);
     const locationRoot = root.querySelector('[data-address-location-fields]');
     const locationFields = initAddressLocationFields(locationRoot, api);
 
@@ -76,6 +159,11 @@ function initVendorCreatePage(root) {
 
     const showErrors = (errors = {}, message = null) => {
         clearErrors();
+
+        const errorFields = Object.keys(errors);
+        if (errorFields.length > 0) {
+            activateTab(resolveErrorTab(errorFields[0]));
+        }
 
         Object.entries(errors).forEach(([field, messages]) => {
             const el = form.querySelector(`[data-error="${field}"]`);

@@ -1,3 +1,5 @@
+import { initPriceHistories } from './components/price-histories-modal';
+
 const csrfToken = () =>
     document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
 
@@ -36,6 +38,64 @@ async function api(url, options = {}) {
     }
 
     return payload;
+}
+
+const activeTabClass =
+    'whitespace-nowrap border-b-2 border-teal-700 px-3 py-3 text-sm font-medium text-teal-800 transition hover:text-teal-900';
+const inactiveTabClass =
+    'whitespace-nowrap border-b-2 border-transparent px-3 py-3 text-sm font-medium text-slate-500 transition hover:border-slate-300 hover:text-slate-700';
+
+function initTabs(root) {
+    const tabs = [...root.querySelectorAll('[data-tab]')];
+    const panels = [...root.querySelectorAll('[data-tab-panel]')];
+
+    const activateTab = (tabKey) => {
+        tabs.forEach((tab) => {
+            const isActive = tab.dataset.tab === tabKey;
+            tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+            tab.className = isActive ? activeTabClass : inactiveTabClass;
+            tab.tabIndex = isActive ? 0 : -1;
+        });
+
+        panels.forEach((panel) => {
+            panel.hidden = panel.dataset.tabPanel !== tabKey;
+        });
+    };
+
+    tabs.forEach((tab) => {
+        tab.addEventListener('click', () => activateTab(tab.dataset.tab));
+    });
+
+    root.querySelector('[data-tabs]')?.addEventListener('keydown', (event) => {
+        const currentIndex = tabs.findIndex((tab) => tab.getAttribute('aria-selected') === 'true');
+        if (currentIndex < 0) {
+            return;
+        }
+
+        let nextIndex = null;
+
+        if (event.key === 'ArrowRight') {
+            nextIndex = (currentIndex + 1) % tabs.length;
+        } else if (event.key === 'ArrowLeft') {
+            nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+        } else if (event.key === 'Home') {
+            nextIndex = 0;
+        } else if (event.key === 'End') {
+            nextIndex = tabs.length - 1;
+        }
+
+        if (nextIndex === null) {
+            return;
+        }
+
+        event.preventDefault();
+        activateTab(tabs[nextIndex].dataset.tab);
+        tabs[nextIndex].focus();
+    });
+
+    activateTab('basic');
+
+    return { activateTab };
 }
 
 function statusBadge(isActive) {
@@ -81,10 +141,32 @@ function formatNotes(notes) {
     return `<p class="whitespace-pre-wrap break-words">${escapeHtml(notes)}</p>`;
 }
 
+function formatMoney(value) {
+    if (value === null || value === undefined || value === '') {
+        return '<span class="text-slate-500">—</span>';
+    }
+
+    const number = Number(value);
+    if (!Number.isFinite(number)) {
+        return '<span class="text-slate-500">—</span>';
+    }
+
+    return escapeHtml(
+        number.toLocaleString('zh-TW', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }),
+    );
+}
+
 function initProductShowPage(root) {
     const productId = root.dataset.productId;
-    const detail = root.querySelector('[data-product-detail]');
+    const basicDetail = root.querySelector('[data-product-detail-basic]');
+    const priceDetail = root.querySelector('[data-product-detail-price]');
     const alertBox = root.querySelector('[data-alert]');
+
+    initTabs(root);
+    initPriceHistories(root, productId);
 
     const showAlert = (message, type = 'error') => {
         alertBox.hidden = false;
@@ -102,7 +184,7 @@ function initProductShowPage(root) {
                 : product.unit.name
             : '—';
 
-        detail.innerHTML = `
+        basicDetail.innerHTML = `
             <dl class="space-y-5">
                 ${detailRow('系統編號', `<span class="font-medium">${escapeHtml(product.code || '—')}</span>`)}
                 ${detailRow('商品分類', escapeHtml(product.category?.name || '—'))}
@@ -113,16 +195,47 @@ function initProductShowPage(root) {
                 ${detailRow('狀態', statusBadge(Boolean(product.is_active)))}
             </dl>
         `;
+
+        priceDetail.innerHTML = `
+            <div class="space-y-6">
+                <div>
+                    <p class="mb-1.5 text-sm font-medium text-slate-700">預計進價</p>
+                    ${
+                        product.vendors?.length
+                            ? `<dl class="space-y-4">
+                                ${product.vendors
+                                    .map(
+                                        (vendor) => `
+                                            <div class="grid gap-1 sm:grid-cols-[8rem_minmax(0,1fr)] sm:gap-4">
+                                                <dt class="text-sm font-medium text-slate-500">${escapeHtml(vendor.name)}</dt>
+                                                <dd class="text-sm text-slate-900">${formatMoney(vendor.estimated_purchase_price)}</dd>
+                                            </div>
+                                        `,
+                                    )
+                                    .join('')}
+                            </dl>`
+                            : '<p class="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">尚未選擇供應商，因此沒有對應進價。</p>'
+                    }
+                </div>
+                <div>
+                    <p class="mb-1.5 text-sm font-medium text-slate-700">預計售價</p>
+                    <p class="text-sm text-slate-900">${formatMoney(product.estimated_selling_price)}</p>
+                </div>
+            </div>
+        `;
     };
 
     const loadProduct = async () => {
-        detail.innerHTML = '<p class="text-sm text-slate-500">載入中…</p>';
+        basicDetail.innerHTML = '<p class="text-sm text-slate-500">載入中…</p>';
+        priceDetail.innerHTML = '<p class="text-sm text-slate-500">載入中…</p>';
 
         try {
             const payload = await api(`/api/products/${productId}`);
             renderProduct(payload.data ?? payload);
         } catch (error) {
-            detail.innerHTML =
+            basicDetail.innerHTML =
+                '<p class="text-sm text-red-600">載入失敗，請稍後再試。</p>';
+            priceDetail.innerHTML =
                 '<p class="text-sm text-red-600">載入失敗，請稍後再試。</p>';
             showAlert(error.message || '載入商品明細失敗', 'error');
         }

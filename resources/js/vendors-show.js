@@ -38,6 +38,79 @@ async function api(url, options = {}) {
     return payload;
 }
 
+const activeTabClass =
+    'whitespace-nowrap border-b-2 border-teal-700 px-3 py-3 text-sm font-medium text-teal-800 transition hover:text-teal-900';
+const inactiveTabClass =
+    'whitespace-nowrap border-b-2 border-transparent px-3 py-3 text-sm font-medium text-slate-500 transition hover:border-slate-300 hover:text-slate-700';
+
+function initTabs(root) {
+    const tabs = [...root.querySelectorAll('[data-tab]')];
+    const panels = [...root.querySelectorAll('[data-tab-panel]')];
+    const panelsRoot = root.querySelector('[data-tab-panels]');
+
+    const activateTab = (tabKey) => {
+        const isOverview = tabKey === 'overview';
+
+        tabs.forEach((tab) => {
+            const isActive = tab.dataset.tab === tabKey;
+            tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+            tab.className = isActive ? activeTabClass : inactiveTabClass;
+            tab.tabIndex = isActive ? 0 : -1;
+        });
+
+        panels.forEach((panel) => {
+            const spacingClass = panel.dataset.overviewSpacing;
+            panel.hidden = isOverview ? false : panel.dataset.tabPanel !== tabKey;
+
+            if (spacingClass) {
+                panel.classList.toggle(spacingClass, isOverview);
+            }
+        });
+
+        root.querySelectorAll('[data-tab-heading]').forEach((heading) => {
+            heading.hidden = !isOverview;
+        });
+
+        if (panelsRoot) {
+            panelsRoot.classList.toggle('divide-y', isOverview);
+            panelsRoot.classList.toggle('divide-slate-100', isOverview);
+        }
+    };
+
+    tabs.forEach((tab) => {
+        tab.addEventListener('click', () => activateTab(tab.dataset.tab));
+    });
+
+    root.querySelector('[data-tabs]')?.addEventListener('keydown', (event) => {
+        const currentIndex = tabs.findIndex((tab) => tab.getAttribute('aria-selected') === 'true');
+        if (currentIndex < 0) {
+            return;
+        }
+
+        let nextIndex = null;
+
+        if (event.key === 'ArrowRight') {
+            nextIndex = (currentIndex + 1) % tabs.length;
+        } else if (event.key === 'ArrowLeft') {
+            nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+        } else if (event.key === 'Home') {
+            nextIndex = 0;
+        } else if (event.key === 'End') {
+            nextIndex = tabs.length - 1;
+        }
+
+        if (nextIndex === null) {
+            return;
+        }
+
+        event.preventDefault();
+        activateTab(tabs[nextIndex].dataset.tab);
+        tabs[nextIndex].focus();
+    });
+
+    activateTab('overview');
+}
+
 function statusBadge(isActive) {
     return isActive
         ? '<span class="inline-flex rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-medium text-teal-800">啟用</span>'
@@ -63,8 +136,13 @@ function formatNotes(notes) {
 
 function initVendorShowPage(root) {
     const vendorId = root.dataset.vendorId;
-    const detail = root.querySelector('[data-vendor-detail]');
+    const basicDetail = root.querySelector('[data-vendor-detail-basic]');
+    const contactDetail = root.querySelector('[data-vendor-detail-contact]');
+    const paymentDetail = root.querySelector('[data-vendor-detail-payment]');
+    const otherDetail = root.querySelector('[data-vendor-detail-other]');
     const alertBox = root.querySelector('[data-alert]');
+
+    initTabs(root);
 
     const showAlert = (message, type = 'error') => {
         alertBox.hidden = false;
@@ -76,11 +154,17 @@ function initVendorShowPage(root) {
     };
 
     const renderVendor = (vendor) => {
-        detail.innerHTML = `
+        basicDetail.innerHTML = `
             <dl class="space-y-5">
                 ${detailRow('系統編號', `<span class="font-medium">${escapeHtml(vendor.code || '—')}</span>`)}
                 ${detailRow('廠商名稱', `<span class="font-medium">${escapeHtml(vendor.name || '—')}</span>`)}
                 ${detailRow('統一編號', escapeHtml(vendor.tax_id || '—'))}
+                ${detailRow('狀態', statusBadge(Boolean(vendor.is_active)))}
+            </dl>
+        `;
+
+        contactDetail.innerHTML = `
+            <dl class="space-y-5">
                 ${detailRow('聯絡人', escapeHtml(vendor.contact_name || '—'))}
                 ${detailRow('電話', escapeHtml(vendor.phone || '—'))}
                 ${detailRow('電子郵件', escapeHtml(vendor.email || '—'))}
@@ -88,21 +172,40 @@ function initVendorShowPage(root) {
                 ${detailRow('縣市', escapeHtml(vendor.city?.name || '—'))}
                 ${detailRow('區域', escapeHtml(vendor.district?.name || '—'))}
                 ${detailRow('地址', escapeHtml(vendor.address || '—'))}
+            </dl>
+        `;
+
+        paymentDetail.innerHTML = `
+            <dl class="space-y-5">
+                ${detailRow('匯款銀行', escapeHtml(vendor.remittance_bank || '—'))}
+                ${detailRow('匯款帳號', escapeHtml(vendor.remittance_account || '—'))}
+                ${detailRow('結帳方式', escapeHtml(vendor.settlement_method_label || '—'))}
+            </dl>
+        `;
+
+        otherDetail.innerHTML = `
+            <dl class="space-y-5">
                 ${detailRow('備註', formatNotes(vendor.notes))}
-                ${detailRow('狀態', statusBadge(Boolean(vendor.is_active)))}
             </dl>
         `;
     };
 
     const loadVendor = async () => {
-        detail.innerHTML = '<p class="text-sm text-slate-500">載入中…</p>';
+        const loading = '<p class="text-sm text-slate-500">載入中…</p>';
+        basicDetail.innerHTML = loading;
+        contactDetail.innerHTML = loading;
+        paymentDetail.innerHTML = loading;
+        otherDetail.innerHTML = loading;
 
         try {
             const payload = await api(`/api/vendors/${vendorId}`);
             renderVendor(payload.data ?? payload);
         } catch (error) {
-            detail.innerHTML =
-                '<p class="text-sm text-red-600">載入失敗，請稍後再試。</p>';
+            const failed = '<p class="text-sm text-red-600">載入失敗，請稍後再試。</p>';
+            basicDetail.innerHTML = failed;
+            contactDetail.innerHTML = failed;
+            paymentDetail.innerHTML = failed;
+            otherDetail.innerHTML = failed;
             showAlert(error.message || '載入廠商明細失敗', 'error');
         }
     };
