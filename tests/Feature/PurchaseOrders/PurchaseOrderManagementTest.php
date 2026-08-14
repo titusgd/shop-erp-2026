@@ -105,6 +105,7 @@ class PurchaseOrderManagementTest extends TestCase
         $product = Product::factory()->create(['name' => '礦泉水 600ml']);
         $vendor = Vendor::factory()->create(['name' => '泉源企業']);
         $warehouse = Warehouse::factory()->create(['name' => '總倉']);
+        $product->vendors()->attach($vendor->id);
         $order = PurchaseOrder::factory()->create([
             'vendor_id' => $vendor->id,
             'warehouse_id' => $warehouse->id,
@@ -135,6 +136,7 @@ class PurchaseOrderManagementTest extends TestCase
         $vendor = Vendor::factory()->create();
         $warehouse = Warehouse::factory()->create();
         $product = Product::factory()->create();
+        $product->vendors()->attach($vendor->id);
 
         $response = $this->actingAs($user)
             ->postJson('/api/purchase-orders', [
@@ -175,6 +177,8 @@ class PurchaseOrderManagementTest extends TestCase
         $warehouse = Warehouse::factory()->create();
         $productA = Product::factory()->create();
         $productB = Product::factory()->create();
+        $productA->vendors()->attach($vendor->id);
+        $productB->vendors()->attach($vendor->id);
         $order = PurchaseOrder::factory()->create([
             'vendor_id' => $vendor->id,
             'warehouse_id' => $warehouse->id,
@@ -291,6 +295,7 @@ class PurchaseOrderManagementTest extends TestCase
         $vendor = Vendor::factory()->create();
         $warehouse = Warehouse::factory()->create();
         $product = Product::factory()->create();
+        $product->vendors()->attach($vendor->id);
 
         $response = $this->actingAs($user)
             ->postJson('/api/purchase-orders', [
@@ -311,5 +316,32 @@ class PurchaseOrderManagementTest extends TestCase
 
         $this->assertNotSame('CUSTOM-CODE', $response->json('data.code'));
         $this->assertMatchesRegularExpression('/^PO\d{6}$/', $response->json('data.code'));
+    }
+
+    public function test_purchase_order_items_must_belong_to_selected_vendor(): void
+    {
+        $user = User::factory()->create();
+        $vendor = Vendor::factory()->create();
+        $otherVendor = Vendor::factory()->create();
+        $warehouse = Warehouse::factory()->create();
+        $product = Product::factory()->create();
+        $product->vendors()->attach($otherVendor->id);
+
+        $this->actingAs($user)
+            ->postJson('/api/purchase-orders', [
+                'vendor_id' => $vendor->id,
+                'warehouse_id' => $warehouse->id,
+                'order_date' => '2026-08-10',
+                'status' => 'draft',
+                'items' => [
+                    [
+                        'product_id' => $product->id,
+                        'quantity' => 1,
+                        'unit_price' => 10,
+                    ],
+                ],
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['items.0.product_id']);
     }
 }

@@ -15,7 +15,11 @@ class PurchaseOrderSeeder extends Seeder
         $service = app(PurchaseOrderService::class);
         $vendor = Vendor::query()->orderBy('id')->first();
         $warehouse = Warehouse::query()->orderBy('id')->first();
-        $products = Product::query()->orderBy('id')->limit(3)->get();
+        $products = Product::query()
+            ->whereHas('vendors', fn ($query) => $query->where('vendors.id', $vendor->id))
+            ->orderBy('id')
+            ->limit(3)
+            ->get();
 
         if (! $vendor || ! $warehouse || $products->isEmpty()) {
             return;

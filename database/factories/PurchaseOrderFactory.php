@@ -67,9 +67,12 @@ class PurchaseOrderFactory extends Factory
                 $amount = round($quantity * $unitPrice, 2);
                 $total += $amount;
 
+                $product = Product::factory()->create();
+                $product->vendors()->attach($purchaseOrder->vendor_id);
+
                 PurchaseOrderItem::query()->create([
                     'purchase_order_id' => $purchaseOrder->id,
-                    'product_id' => Product::factory()->create()->id,
+                    'product_id' => $product->id,
                     'quantity' => number_format($quantity, 3, '.', ''),
                     'unit_price' => number_format($unitPrice, 2, '.', ''),
                     'amount' => number_format($amount, 2, '.', ''),

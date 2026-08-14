@@ -92,6 +92,12 @@
             'label' => '採購管理',
             'children' => [
                 [
+                    'key' => 'purchase-requisitions',
+                    'label' => '請購單',
+                    'route' => 'purchase-requisitions.index',
+                    'icon' => 'clipboard',
+                ],
+                [
                     'key' => 'purchase-orders',
                     'label' => '採購單',
                     'route' => 'purchase-orders.index',
@@ -263,6 +269,7 @@
             'home-modern' => '<svg '.$attrs.'><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 21v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21m0 0h4.5V3.545M12.75 21h7.5V10.75M2.25 21h1.5m18 0h-18M2.25 9l4.5-1.636M18.75 3l-1.5.545m0 6.205 3 1m0 0-3 1.091M18.75 3.75l-1.5.545M2.25 9l3 1.091m0 0L2.25 12m3-1.909 3.75 1.364" /></svg>',
             'map' => '<svg '.$attrs.'><path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m0-8.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v8.25m0 0a.75.75 0 0 1-.75.75h-3.5a.75.75 0 0 1-.75-.75m6.75-9.75L21 4.5v14.25l-3.75-1.5m0-12.75L15 4.5v14.25l2.25.9M3 19.5l3.75-1.5V4.5L3 6v13.5Z" /></svg>',
             'map-pin' => '<svg '.$attrs.'><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" /></svg>',
+            'clipboard' => '<svg '.$attrs.'><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9.75a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184" /></svg>',
             'clipboard-document-list' => '<svg '.$attrs.'><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.551 0c-.118-.008-.236-.016-.355-.023A2.25 2.25 0 0 0 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z" /></svg>',
             'truck' => '<svg '.$attrs.'><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.131 1.131 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" /></svg>',
             'arrow-uturn-left' => '<svg '.$attrs.'><path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" /></svg>',
@@ -297,6 +304,7 @@
         'product-units' => 'product-units.*',
         'warehouse-types' => 'warehouse-types.*',
         'warehouses' => 'warehouses.*',
+        'purchase-requisitions' => 'purchase-requisitions.*',
         'purchase-orders' => 'purchase-orders.*',
         'cities' => 'cities.*',
         'districts' => 'districts.*',

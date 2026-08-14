@@ -40,6 +40,8 @@ async function fetchJson(url) {
  *   noResultLabel?: string,
  *   placeholder?: string,
  *   disabledPlaceholder?: string,
+ *   fixedDropdown?: boolean,
+ *   formatItem?: (item: Record<string, any>) => {id: number, name: string, code?: string|null},
  *   onChange?: (item: {id: number, name: string, code?: string|null}|null) => void,
  * }} options
  */
@@ -53,6 +55,15 @@ export function initSearchableSelect(root, options) {
     const noResultLabel = options.noResultLabel ?? '找不到符合的項目';
     const placeholder = options.placeholder ?? '輸入關鍵字搜尋';
     const disabledPlaceholder = options.disabledPlaceholder ?? placeholder;
+    const useFixedDropdown = Boolean(options.fixedDropdown);
+    const formatItem =
+        typeof options.formatItem === 'function'
+            ? options.formatItem
+            : (item) => ({
+                  id: Number(item.id),
+                  name: item.name ?? '',
+                  code: item.code ?? null,
+              });
 
     /** @type {{id: number, name: string, code?: string|null}|null} */
     let selected = null;
@@ -83,15 +94,54 @@ export function initSearchableSelect(root, options) {
         syncClearButton();
     };
 
+    const dropdownHost = optionsList?.parentElement ?? null;
+
+    const resetDropdownPosition = () => {
+        if (!useFixedDropdown) {
+            return;
+        }
+
+        optionsList.style.position = '';
+        optionsList.style.left = '';
+        optionsList.style.top = '';
+        optionsList.style.width = '';
+        optionsList.style.zIndex = '';
+        optionsList.style.marginTop = '';
+
+        if (dropdownHost && optionsList.parentElement !== dropdownHost) {
+            dropdownHost.appendChild(optionsList);
+        }
+    };
+
+    const positionDropdown = () => {
+        if (!useFixedDropdown || optionsList.hidden) {
+            return;
+        }
+
+        const rect = searchInput.getBoundingClientRect();
+        optionsList.style.position = 'fixed';
+        optionsList.style.left = `${rect.left}px`;
+        optionsList.style.top = `${rect.bottom + 4}px`;
+        optionsList.style.width = `${Math.max(rect.width, 220)}px`;
+        optionsList.style.zIndex = '50';
+        optionsList.style.marginTop = '0';
+    };
+
     const closeDropdown = () => {
         optionsList.hidden = true;
         searchInput.setAttribute('aria-expanded', 'false');
         highlightedIndex = -1;
+        resetDropdownPosition();
     };
 
     const openDropdown = () => {
+        if (useFixedDropdown && optionsList.parentElement !== document.body) {
+            document.body.appendChild(optionsList);
+        }
+
         optionsList.hidden = false;
         searchInput.setAttribute('aria-expanded', 'true');
+        positionDropdown();
     };
 
     const setSelected = (item, { emit = true } = {}) => {
@@ -206,7 +256,7 @@ export function initSearchableSelect(root, options) {
                 return;
             }
 
-            renderOptions(payload.data ?? []);
+            renderOptions((payload.data ?? []).map(formatItem));
         } catch (error) {
             if (requestId !== latestRequestId) {
                 return;
@@ -328,11 +378,16 @@ export function initSearchableSelect(root, options) {
     });
 
     document.addEventListener('click', (event) => {
-        if (!root.contains(event.target)) {
+        if (!root.contains(event.target) && !optionsList.contains(event.target)) {
             closeDropdown();
             showSelectedLabel();
         }
     });
+
+    if (useFixedDropdown) {
+        window.addEventListener('scroll', positionDropdown, true);
+        window.addEventListener('resize', positionDropdown);
+    }
 
     const initialId = root.dataset.initialId || '';
     const initialName = root.dataset.initialName || '';
@@ -352,7 +407,7 @@ export function initSearchableSelect(root, options) {
                 .then((payload) => {
                     const item = payload.data;
                     if (item && Number(item.id) === Number(initialId)) {
-                        setSelected(item, { emit: false });
+                        setSelected(formatItem(item), { emit: false });
                     }
                 })
                 .catch(() => {

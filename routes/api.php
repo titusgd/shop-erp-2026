@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\ProductCategoryController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ProductUnitController;
 use App\Http\Controllers\Api\PurchaseOrderController;
+use App\Http\Controllers\Api\PurchaseRequisitionController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\VendorController;
 use App\Http\Controllers\Api\WarehouseController;
@@ -31,6 +32,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('warehouses/{warehouse}/histories', [WarehouseController::class, 'histories'])
         ->name('api.warehouses.histories');
     Route::apiResource('warehouses', WarehouseController::class)->names('api.warehouses');
+    Route::apiResource('purchase-requisitions', PurchaseRequisitionController::class)->names('api.purchase-requisitions');
     Route::apiResource('purchase-orders', PurchaseOrderController::class)->names('api.purchase-orders');
     Route::apiResource('cities', CityController::class)->names('api.cities');
     Route::apiResource('districts', DistrictController::class)->names('api.districts');

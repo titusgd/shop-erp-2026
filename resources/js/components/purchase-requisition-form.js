@@ -1,3 +1,5 @@
+import { initSearchableSelect } from './searchable-select';
+
 const csrfToken = () =>
     document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
 
@@ -36,18 +38,6 @@ export async function api(url, options = {}) {
     }
 
     return payload;
-}
-
-function formatMoney(value) {
-    const number = Number(value);
-    if (!Number.isFinite(number)) {
-        return '0.00';
-    }
-
-    return number.toLocaleString('zh-TW', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    });
 }
 
 async function loadSelectOptions(url, select, placeholder, selectedId = null, labelFn) {
@@ -93,28 +83,26 @@ async function loadSelectOptions(url, select, placeholder, selectedId = null, la
  * @param {HTMLElement} root
  * @param {{
  *   mode: 'create' | 'edit',
- *   orderId?: string|number|null,
+ *   requisitionId?: string|number|null,
  *   indexUrl: string,
+ *   currentUserId?: number|null,
  *   initial?: {
- *     vendor_id?: number|null,
+ *     requester_id?: number|null,
  *     warehouse_id?: number|null,
- *     items?: Array<{product_id:number, quantity:string|number, unit_price:string|number}>
+ *     items?: Array<{product_id:number, quantity:string|number, notes?:string|null}>
  *   }
  * }} options
  */
-export function initPurchaseOrderForm(root, options) {
-    const form = root.querySelector('[data-purchase-order-form]');
+export function initPurchaseRequisitionForm(root, options) {
+    const form = root.querySelector('[data-purchase-requisition-form]');
     const submitButton = root.querySelector('[data-submit]');
     const alertBox = root.querySelector('[data-alert]');
-    const vendorSelect = form.querySelector('[data-field="vendor_id"]');
+    const requesterSelect = form.querySelector('[data-field="requester_id"]');
     const warehouseSelect = form.querySelector('[data-field="warehouse_id"]');
     const itemsBody = form.querySelector('[data-items-body]');
     const addItemButton = form.querySelector('[data-add-item]');
-    const totalAmountEl = form.querySelector('[data-total-amount]');
     const isCancelled = root.dataset.isCancelled === '1';
 
-    /** @type {Array<{id:number, name:string, code?:string|null, unit?:{name?:string, symbol?:string|null}|null}>} */
-    let products = [];
     let itemSeq = 0;
 
     const showAlert = (message, type = 'error') => {
@@ -164,40 +152,23 @@ export function initPurchaseOrderForm(root, options) {
     };
 
     const productLabel = (product) => {
-        const unit = product.unit?.symbol || product.unit?.name;
-        const base = product.code ? `${product.code} ${product.name}` : product.name;
-        return unit ? `${base}（${unit}）` : base;
-    };
-
-    const productPlaceholder = () => {
-        if (!vendorSelect.value) {
-            return '請先選擇供應商';
+        if (!product) {
+            return '';
         }
 
-        return products.length ? '請選擇商品' : '此供應商尚無可採購商品';
+        const unit = product.unit?.symbol || product.unit?.name;
+        return unit ? `${product.name}（${unit}）` : (product.name ?? '');
     };
 
-    const productOptionsHtml = (selectedId = '') => {
-        const options = [`<option value="">${escapeHtml(productPlaceholder())}</option>`];
-        products.forEach((product) => {
-            const selected = selectedId !== '' && Number(selectedId) === Number(product.id) ? ' selected' : '';
-            options.push(
-                `<option value="${product.id}"${selected}>${escapeHtml(productLabel(product))}</option>`,
-            );
-        });
-        return options.join('');
-    };
+    const formatProductItem = (item) => {
+        const unit = item.unit?.symbol || item.unit?.name;
+        const name = unit ? `${item.name ?? ''}（${unit}）` : (item.name ?? '');
 
-    const recalculateTotals = () => {
-        let total = 0;
-        itemsBody.querySelectorAll('[data-item-row]').forEach((row) => {
-            const quantity = Number(row.querySelector('[data-item-quantity]').value);
-            const unitPrice = Number(row.querySelector('[data-item-unit-price]').value);
-            const amount = (Number.isFinite(quantity) ? quantity : 0) * (Number.isFinite(unitPrice) ? unitPrice : 0);
-            row.querySelector('[data-item-amount]').textContent = formatMoney(amount);
-            total += amount;
-        });
-        totalAmountEl.textContent = formatMoney(total);
+        return {
+            id: Number(item.id),
+            name,
+            code: item.code ?? null,
+        };
     };
 
     const reindexRows = () => {
@@ -210,17 +181,60 @@ export function initPurchaseOrderForm(root, options) {
         const rowId = `item-${itemSeq}`;
         itemSeq += 1;
 
+        const selectedProductId = item?.product_id ?? '';
+        const selectedProductName = productLabel(item?.product);
+        const searchId = `${rowId}-product-search`;
+        const optionsId = `${rowId}-product-options`;
+
         const tr = document.createElement('tr');
         tr.dataset.itemRow = '';
         tr.dataset.rowId = rowId;
         tr.innerHTML = `
             <td class="px-3 py-2 align-top">
-                <select
-                    data-item-product
-                    class="block w-full min-w-[12rem] rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500"
+                <div
+                    data-item-product-select
+                    data-initial-id="${escapeHtml(selectedProductId)}"
+                    data-initial-name="${escapeHtml(selectedProductName)}"
+                    class="min-w-[12rem]"
                 >
-                    ${productOptionsHtml(item?.product_id ?? '')}
-                </select>
+                    <input
+                        type="hidden"
+                        data-item-product
+                        data-searchable-select-value
+                        value="${escapeHtml(selectedProductId)}"
+                    >
+                    <div class="relative">
+                        <input
+                            id="${searchId}"
+                            type="text"
+                            autocomplete="off"
+                            data-searchable-select-search
+                            placeholder="輸入關鍵字搜尋商品"
+                            class="block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 pr-8 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500"
+                            aria-controls="${optionsId}"
+                            aria-expanded="false"
+                            aria-autocomplete="list"
+                            role="combobox"
+                        >
+                        <svg
+                            class="pointer-events-none absolute inset-y-0 right-2.5 my-auto h-4 w-4 text-slate-400"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            aria-hidden="true"
+                        >
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                        </svg>
+                        <ul
+                            id="${optionsId}"
+                            data-searchable-select-options
+                            role="listbox"
+                            hidden
+                            class="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+                        ></ul>
+                    </div>
+                </div>
                 <p class="mt-1 hidden text-sm text-red-600" data-error="item.product_id"></p>
             </td>
             <td class="px-3 py-2 align-top">
@@ -236,17 +250,13 @@ export function initPurchaseOrderForm(root, options) {
             </td>
             <td class="px-3 py-2 align-top">
                 <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    data-item-unit-price
-                    value="${escapeHtml(item?.unit_price ?? '0')}"
-                    class="block w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                    type="text"
+                    maxlength="255"
+                    data-item-notes
+                    value="${escapeHtml(item?.notes ?? '')}"
+                    class="block w-full min-w-[8rem] rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-900 shadow-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
                 >
-                <p class="mt-1 hidden text-sm text-red-600" data-error="item.unit_price"></p>
-            </td>
-            <td class="px-3 py-2 align-top text-right font-medium text-slate-900">
-                <span data-item-amount>0.00</span>
+                <p class="mt-1 hidden text-sm text-red-600" data-error="item.notes"></p>
             </td>
             <td class="px-3 py-2 align-top text-right">
                 <button
@@ -260,48 +270,21 @@ export function initPurchaseOrderForm(root, options) {
         `;
 
         itemsBody.appendChild(tr);
-        applyProductSelectState(tr.querySelector('[data-item-product]'));
+
+        const productSelectRoot = tr.querySelector('[data-item-product-select]');
+        if (productSelectRoot) {
+            initSearchableSelect(productSelectRoot, {
+                endpoint: '/api/products',
+                queryParams: { active_only: '1' },
+                placeholder: '輸入關鍵字搜尋商品',
+                emptyLabel: '目前沒有可請購商品',
+                noResultLabel: '找不到符合的商品',
+                fixedDropdown: true,
+                formatItem: formatProductItem,
+            });
+        }
+
         reindexRows();
-        recalculateTotals();
-    };
-
-    const applyProductSelectState = (select) => {
-        if (!select) {
-            return;
-        }
-
-        select.disabled = isCancelled || !vendorSelect.value;
-    };
-
-    const syncProductSelects = () => {
-        itemsBody.querySelectorAll('[data-item-row]').forEach((row) => {
-            const select = row.querySelector('[data-item-product]');
-            const previous = select.value;
-            select.innerHTML = productOptionsHtml(previous);
-            applyProductSelectState(select);
-            if (previous && !Array.from(select.options).some((option) => option.value === previous)) {
-                select.value = '';
-            }
-        });
-    };
-
-    const refreshProductOptions = async () => {
-        const vendorId = vendorSelect.value;
-        if (!vendorId) {
-            products = [];
-            syncProductSelects();
-            return;
-        }
-
-        const params = new URLSearchParams({
-            per_page: '50',
-            active_only: '1',
-            vendor_id: vendorId,
-        });
-
-        const payload = await api(`/api/products?${params.toString()}`);
-        products = payload.data ?? [];
-        syncProductSelects();
     };
 
     const collectPayload = () => {
@@ -309,24 +292,24 @@ export function initPurchaseOrderForm(root, options) {
         itemsBody.querySelectorAll('[data-item-row]').forEach((row) => {
             const productId = row.querySelector('[data-item-product]').value;
             const quantity = row.querySelector('[data-item-quantity]').value;
-            const unitPrice = row.querySelector('[data-item-unit-price]').value;
+            const notes = row.querySelector('[data-item-notes]').value.trim();
 
-            if (!productId && !quantity && !unitPrice) {
+            if (!productId && !quantity && !notes) {
                 return;
             }
 
             items.push({
                 product_id: productId ? Number(productId) : null,
                 quantity: quantity === '' ? null : Number(quantity),
-                unit_price: unitPrice === '' ? null : Number(unitPrice),
+                notes: notes === '' ? null : notes,
             });
         });
 
         return {
-            vendor_id: vendorSelect.value ? Number(vendorSelect.value) : null,
+            requester_id: requesterSelect.value ? Number(requesterSelect.value) : null,
             warehouse_id: warehouseSelect.value ? Number(warehouseSelect.value) : null,
-            order_date: form.querySelector('[data-field="order_date"]').value,
-            expected_date: form.querySelector('[data-field="expected_date"]').value || null,
+            request_date: form.querySelector('[data-field="request_date"]').value,
+            required_date: form.querySelector('[data-field="required_date"]').value || null,
             status: form.querySelector('[data-field="status"]').value,
             notes: form.querySelector('[data-field="notes"]').value.trim(),
             items,
@@ -346,14 +329,6 @@ export function initPurchaseOrderForm(root, options) {
         submitButton.disabled = disabled;
     };
 
-    vendorSelect.addEventListener('change', () => {
-        refreshProductOptions().catch(() => {
-            products = [];
-            syncProductSelects();
-            showAlert('載入供應商商品失敗', 'error');
-        });
-    });
-
     addItemButton.addEventListener('click', () => addItemRow());
 
     itemsBody.addEventListener('click', (event) => {
@@ -363,21 +338,15 @@ export function initPurchaseOrderForm(root, options) {
         }
 
         const row = button.closest('[data-item-row]');
+        const optionsId = row?.querySelector('[data-searchable-select-search]')?.getAttribute('aria-controls');
         row?.remove();
+        if (optionsId) {
+            document.getElementById(optionsId)?.remove();
+        }
         reindexRows();
-        recalculateTotals();
 
         if (!itemsBody.querySelector('[data-item-row]')) {
             addItemRow();
-        }
-    });
-
-    itemsBody.addEventListener('input', (event) => {
-        if (
-            event.target.matches('[data-item-quantity]') ||
-            event.target.matches('[data-item-unit-price]')
-        ) {
-            recalculateTotals();
         }
     });
 
@@ -386,7 +355,7 @@ export function initPurchaseOrderForm(root, options) {
         clearErrors();
 
         if (isCancelled) {
-            showAlert('已取消的採購單不可修改', 'error');
+            showAlert('已取消的請購單不可修改', 'error');
             return;
         }
 
@@ -395,12 +364,12 @@ export function initPurchaseOrderForm(root, options) {
 
         try {
             if (options.mode === 'create') {
-                await api('/api/purchase-orders', {
+                await api('/api/purchase-requisitions', {
                     method: 'POST',
                     body: JSON.stringify(payload),
                 });
             } else {
-                await api(`/api/purchase-orders/${options.orderId}`, {
+                await api(`/api/purchase-requisitions/${options.requisitionId}`, {
                     method: 'PUT',
                     body: JSON.stringify(payload),
                 });
@@ -418,14 +387,15 @@ export function initPurchaseOrderForm(root, options) {
     });
 
     const initial = options.initial ?? {};
+    const defaultRequesterId = initial.requester_id ?? options.currentUserId ?? null;
 
     Promise.all([
         loadSelectOptions(
-            '/api/vendors',
-            vendorSelect,
-            '請選擇供應商',
-            initial.vendor_id ?? null,
-            (item) => (item.code ? `${item.code} ${item.name}` : item.name),
+            '/api/users',
+            requesterSelect,
+            '請選擇請購人',
+            defaultRequesterId,
+            (item) => item.name,
         ),
         loadSelectOptions(
             '/api/warehouses',
@@ -435,7 +405,6 @@ export function initPurchaseOrderForm(root, options) {
             (item) => (item.code ? `${item.code} ${item.name}` : item.name),
         ),
     ])
-        .then(() => refreshProductOptions())
         .then(() => {
             const initialItems = initial.items ?? [];
             if (initialItems.length) {
@@ -446,7 +415,7 @@ export function initPurchaseOrderForm(root, options) {
 
             if (isCancelled) {
                 setFormDisabled(true);
-                showAlert('已取消的採購單不可修改', 'error');
+                showAlert('已取消的請購單不可修改', 'error');
             }
         })
         .catch(() => {

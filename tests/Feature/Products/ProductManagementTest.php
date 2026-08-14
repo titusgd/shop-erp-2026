@@ -178,6 +178,23 @@ class ProductManagementTest extends TestCase
             ->assertJsonPath('data.0.name', '綠茶禮盒');
     }
 
+    public function test_products_can_be_filtered_by_vendor_via_api(): void
+    {
+        $user = User::factory()->create();
+        $vendor = Vendor::factory()->create();
+        $otherVendor = Vendor::factory()->create();
+        $productForVendor = Product::factory()->create(['name' => '礦泉水 600ml']);
+        $productForOther = Product::factory()->create(['name' => '綠茶禮盒']);
+        $productForVendor->vendors()->attach($vendor->id);
+        $productForOther->vendors()->attach($otherVendor->id);
+
+        $this->actingAs($user)
+            ->getJson("/api/products?vendor_id={$vendor->id}")
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.name', '礦泉水 600ml');
+    }
+
     public function test_products_require_category_and_unit(): void
     {
         $user = User::factory()->create();

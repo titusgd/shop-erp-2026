@@ -1,49 +1,11 @@
+import { api, escapeHtml } from './components/purchase-requisition-form';
 import { renderPaginationControls } from './components/pagination-controls';
 
-const csrfToken = () =>
-    document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
-
-const escapeHtml = (value) =>
-    String(value ?? '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
-
-async function api(url, options = {}) {
-    const response = await fetch(url, {
-        headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': csrfToken(),
-            'X-Requested-With': 'XMLHttpRequest',
-            ...(options.headers ?? {}),
-        },
-        credentials: 'same-origin',
-        ...options,
-    });
-
-    let payload = null;
-
-    if (response.status !== 204) {
-        payload = await response.json().catch(() => null);
-    }
-
-    if (!response.ok) {
-        const error = new Error(payload?.message ?? '請求失敗');
-        error.status = response.status;
-        error.payload = payload;
-        throw error;
-    }
-
-    return payload;
-}
-
-function initProductCategoriesPage(root) {
+function initPurchaseRequisitionsPage(root) {
     const tableBody = root.querySelector('[data-table-body]');
     const meta = root.querySelector('[data-meta]');
     const searchInput = root.querySelector('[data-search]');
+    const statusFilter = root.querySelector('[data-status-filter]');
     const pagination = root.querySelector('[data-pagination]');
     const paginationSummary = root.querySelector('[data-pagination-summary]');
     const paginationControls = root.querySelector('[data-pagination-controls]');
@@ -60,6 +22,7 @@ function initProductCategoriesPage(root) {
     let to = 0;
     let total = 0;
     let search = '';
+    let status = '';
     let searchTimer = null;
     let pendingDeleteId = null;
     let isDeleting = false;
@@ -92,47 +55,59 @@ function initProductCategoriesPage(root) {
         }, 3200);
     };
 
-    const statusBadge = (isActive) =>
-        isActive
-            ? '<span class="inline-flex rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-medium text-teal-800">啟用</span>'
-            : '<span class="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">停用</span>';
+    const statusBadge = (statusValue, label) => {
+        const styles = {
+            draft: 'bg-slate-100 text-slate-700',
+            confirmed: 'bg-teal-50 text-teal-800',
+            cancelled: 'bg-red-50 text-red-700',
+        };
 
-    const renderRows = (categories) => {
-        if (!categories.length) {
+        return `<span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${styles[statusValue] ?? 'bg-slate-100 text-slate-600'}">${escapeHtml(label || statusValue)}</span>`;
+    };
+
+    const renderRows = (requisitions) => {
+        if (!requisitions.length) {
             tableBody.innerHTML =
-                '<tr><td colspan="4" class="px-4 py-8 text-center text-slate-500 sm:px-5">目前沒有商品分類資料</td></tr>';
+                '<tr><td colspan="6" class="px-4 py-8 text-center text-slate-500 sm:px-5">目前沒有請購單資料</td></tr>';
             return;
         }
 
-        tableBody.innerHTML = categories
-            .map(
-                (category) => `
+        tableBody.innerHTML = requisitions
+            .map((requisition) => {
+                const canDelete = requisition.status !== 'confirmed';
+                return `
                     <tr>
-                        <td class="px-4 py-3 font-medium text-slate-900 sm:px-5">${escapeHtml(category.code || '—')}</td>
-                        <td class="px-4 py-3 text-slate-900 sm:px-5">${escapeHtml(category.name)}</td>
-                        <td class="px-4 py-3 sm:px-5">${statusBadge(category.is_active)}</td>
+                        <td class="px-4 py-3 font-medium text-slate-900 sm:px-5">${escapeHtml(requisition.code || '—')}</td>
+                        <td class="px-4 py-3 text-slate-900 sm:px-5">${escapeHtml(requisition.request_date || '—')}</td>
+                        <td class="px-4 py-3 text-slate-900 sm:px-5">${escapeHtml(requisition.requester?.name || '—')}</td>
+                        <td class="px-4 py-3 text-slate-900 sm:px-5">${escapeHtml(requisition.warehouse?.name || '—')}</td>
+                        <td class="px-4 py-3 sm:px-5">${statusBadge(requisition.status, requisition.status_label)}</td>
                         <td class="px-4 py-3 text-right sm:px-5">
                             <div class="inline-flex items-center gap-1">
-                                <a href="/product-categories/${category.id}/edit" class="rounded-lg px-2.5 py-1.5 text-sm font-medium text-teal-700 transition hover:bg-teal-50">編輯</a>
-                                <button
+                                <a href="/purchase-requisitions/${requisition.id}" class="rounded-lg px-2.5 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50">檢視</a>
+                                <a href="/purchase-requisitions/${requisition.id}/edit" class="rounded-lg px-2.5 py-1.5 text-sm font-medium text-teal-700 transition hover:bg-teal-50">編輯</a>
+                                ${
+                                    canDelete
+                                        ? `<button
                                     type="button"
                                     data-action="delete"
-                                    data-id="${category.id}"
-                                    data-name="${escapeHtml(category.name)}"
-                                    data-code="${escapeHtml(category.code || '')}"
+                                    data-id="${requisition.id}"
+                                    data-code="${escapeHtml(requisition.code || '')}"
                                     class="rounded-lg px-2.5 py-1.5 text-sm font-medium text-red-700 transition hover:bg-red-50"
                                 >
                                     刪除
-                                </button>
+                                </button>`
+                                        : ''
+                                }
                             </div>
                         </td>
                     </tr>
-                `,
-            )
+                `;
+            })
             .join('');
     };
 
-    const loadProductCategories = async () => {
+    const loadRequisitions = async () => {
         meta.textContent = '載入中…';
 
         const params = new URLSearchParams({
@@ -144,25 +119,29 @@ function initProductCategoriesPage(root) {
             params.set('search', search);
         }
 
+        if (status) {
+            params.set('status', status);
+        }
+
         try {
-            const payload = await api(`/api/product-categories?${params.toString()}`);
-            const categories = payload.data ?? [];
+            const payload = await api(`/api/purchase-requisitions?${params.toString()}`);
+            const requisitions = payload.data ?? [];
 
             page = payload.meta?.current_page ?? 1;
             lastPage = payload.meta?.last_page ?? 1;
-            from = payload.meta?.from ?? (categories.length ? 1 : 0);
-            to = payload.meta?.to ?? categories.length;
-            total = payload.meta?.total ?? categories.length;
+            from = payload.meta?.from ?? (requisitions.length ? 1 : 0);
+            to = payload.meta?.to ?? requisitions.length;
+            total = payload.meta?.total ?? requisitions.length;
 
-            renderRows(categories);
+            renderRows(requisitions);
             meta.textContent = `共 ${total} 筆`;
             renderPagination();
         } catch (error) {
             tableBody.innerHTML =
-                '<tr><td colspan="4" class="px-4 py-8 text-center text-red-600 sm:px-5">載入失敗，請稍後再試</td></tr>';
+                '<tr><td colspan="6" class="px-4 py-8 text-center text-red-600 sm:px-5">載入失敗，請稍後再試</td></tr>';
             meta.textContent = '載入失敗';
             pagination.hidden = true;
-            showAlert(error.message || '載入商品分類列表失敗', 'error');
+            showAlert(error.message || '載入請購單列表失敗', 'error');
         }
     };
 
@@ -177,10 +156,9 @@ function initProductCategoriesPage(root) {
         deleteDialogConfirm.disabled = false;
     };
 
-    const openDeleteDialog = (id, name, code) => {
+    const openDeleteDialog = (id, code) => {
         pendingDeleteId = id;
-        const label = code ? `${code} ${name}` : name;
-        deleteDialogMessage.textContent = `確定要刪除商品分類「${label}」嗎？此操作無法復原。`;
+        deleteDialogMessage.textContent = `確定要刪除請購單「${code || id}」嗎？此操作無法復原。`;
         deleteDialog.hidden = false;
         deleteDialog.setAttribute('aria-hidden', 'false');
         deleteDialogConfirm.focus();
@@ -195,16 +173,16 @@ function initProductCategoriesPage(root) {
         deleteDialogConfirm.disabled = true;
 
         try {
-            await api(`/api/product-categories/${pendingDeleteId}`, { method: 'DELETE' });
+            await api(`/api/purchase-requisitions/${pendingDeleteId}`, { method: 'DELETE' });
             pendingDeleteId = null;
             isDeleting = false;
             closeDeleteDialog();
-            showAlert('商品分類已刪除');
-            await loadProductCategories();
+            showAlert('請購單已刪除');
+            await loadRequisitions();
         } catch (error) {
             isDeleting = false;
             deleteDialogConfirm.disabled = false;
-            const message = error.payload?.message ?? error.message ?? '刪除失敗';
+            const message = error.payload?.message ?? error.payload?.errors?.status?.[0] ?? error.message ?? '刪除失敗';
             showAlert(message, 'error');
         }
     };
@@ -215,11 +193,7 @@ function initProductCategoriesPage(root) {
             return;
         }
 
-        openDeleteDialog(
-            Number(button.dataset.id),
-            button.dataset.name ?? '',
-            button.dataset.code ?? '',
-        );
+        openDeleteDialog(Number(button.dataset.id), button.dataset.code ?? '');
     });
 
     deleteDialogCancel.addEventListener('click', closeDeleteDialog);
@@ -237,8 +211,14 @@ function initProductCategoriesPage(root) {
         searchTimer = window.setTimeout(() => {
             search = searchInput.value.trim();
             page = 1;
-            loadProductCategories();
+            loadRequisitions();
         }, 300);
+    });
+
+    statusFilter.addEventListener('change', () => {
+        status = statusFilter.value;
+        page = 1;
+        loadRequisitions();
     });
 
     paginationControls.addEventListener('click', (event) => {
@@ -249,13 +229,13 @@ function initProductCategoriesPage(root) {
 
         if (button.hasAttribute('data-page-prev') && page > 1) {
             page -= 1;
-            loadProductCategories();
+            loadRequisitions();
             return;
         }
 
         if (button.hasAttribute('data-page-next') && page < lastPage) {
             page += 1;
-            loadProductCategories();
+            loadRequisitions();
             return;
         }
 
@@ -263,15 +243,15 @@ function initProductCategoriesPage(root) {
             const nextPage = Number(button.dataset.page);
             if (nextPage !== page && nextPage >= 1 && nextPage <= lastPage) {
                 page = nextPage;
-                loadProductCategories();
+                loadRequisitions();
             }
         }
     });
 
-    loadProductCategories();
+    loadRequisitions();
 }
 
-const page = document.querySelector('[data-product-categories-page]');
+const page = document.querySelector('[data-purchase-requisitions-page]');
 if (page) {
-    initProductCategoriesPage(page);
+    initPurchaseRequisitionsPage(page);
 }

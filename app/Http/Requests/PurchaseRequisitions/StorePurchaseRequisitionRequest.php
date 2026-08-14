@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Http\Requests\PurchaseOrders;
+namespace App\Http\Requests\PurchaseRequisitions;
 
-use App\Models\PurchaseOrder;
+use App\Models\PurchaseRequisition;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class UpdatePurchaseOrderRequest extends FormRequest
+class StorePurchaseRequisitionRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -19,8 +19,12 @@ class UpdatePurchaseOrderRequest extends FormRequest
             $this->merge(['notes' => null]);
         }
 
-        if ($this->has('expected_date') && is_string($this->input('expected_date')) && trim($this->input('expected_date')) === '') {
-            $this->merge(['expected_date' => null]);
+        if ($this->has('required_date') && is_string($this->input('required_date')) && trim($this->input('required_date')) === '') {
+            $this->merge(['required_date' => null]);
+        }
+
+        if (! $this->has('status') || $this->input('status') === null || $this->input('status') === '') {
+            $this->merge(['status' => PurchaseRequisition::STATUS_DRAFT]);
         }
 
         $items = $this->input('items');
@@ -45,24 +49,15 @@ class UpdatePurchaseOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'vendor_id' => ['required', 'integer', 'exists:vendors,id'],
+            'requester_id' => ['required', 'integer', 'exists:users,id'],
             'warehouse_id' => ['required', 'integer', 'exists:warehouses,id'],
-            'order_date' => ['required', 'date'],
-            'expected_date' => ['nullable', 'date', 'after_or_equal:order_date'],
-            'status' => ['required', 'string', Rule::in(array_keys(PurchaseOrder::statuses()))],
+            'request_date' => ['required', 'date'],
+            'required_date' => ['nullable', 'date', 'after_or_equal:request_date'],
+            'status' => ['required', 'string', Rule::in(array_keys(PurchaseRequisition::statuses()))],
             'notes' => ['nullable', 'string', 'max:2000'],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.product_id' => [
-                'required',
-                'integer',
-                'distinct',
-                'exists:products,id',
-                Rule::exists('product_vendor', 'product_id')->where(
-                    fn ($query) => $query->where('vendor_id', $this->input('vendor_id')),
-                ),
-            ],
+            'items.*.product_id' => ['required', 'integer', 'distinct', 'exists:products,id'],
             'items.*.quantity' => ['required', 'numeric', 'gt:0'],
-            'items.*.unit_price' => ['required', 'numeric', 'min:0'],
             'items.*.notes' => ['nullable', 'string', 'max:255'],
         ];
     }
@@ -73,16 +68,15 @@ class UpdatePurchaseOrderRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'vendor_id' => '供應商',
+            'requester_id' => '請購人',
             'warehouse_id' => '進貨倉庫',
-            'order_date' => '採購日期',
-            'expected_date' => '預計到貨日',
+            'request_date' => '請購日期',
+            'required_date' => '需求日期',
             'status' => '狀態',
             'notes' => '備註',
-            'items' => '採購明細',
+            'items' => '請購明細',
             'items.*.product_id' => '商品',
             'items.*.quantity' => '數量',
-            'items.*.unit_price' => '單價',
             'items.*.notes' => '明細備註',
         ];
     }
@@ -93,17 +87,15 @@ class UpdatePurchaseOrderRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'vendor_id.required' => '請選擇供應商。',
+            'requester_id.required' => '請選擇請購人。',
             'warehouse_id.required' => '請選擇進貨倉庫。',
-            'order_date.required' => '請填寫採購日期。',
-            'items.required' => '請至少新增一筆採購明細。',
-            'items.min' => '請至少新增一筆採購明細。',
+            'request_date.required' => '請填寫請購日期。',
+            'items.required' => '請至少新增一筆請購明細。',
+            'items.min' => '請至少新增一筆請購明細。',
             'items.*.product_id.required' => '請選擇商品。',
-            'items.*.product_id.distinct' => '同一採購單不可重複選擇相同商品。',
-            'items.*.product_id.exists' => '請選擇此供應商可採購的商品。',
+            'items.*.product_id.distinct' => '同一請購單不可重複選擇相同商品。',
             'items.*.quantity.gt' => '數量必須大於 0。',
-            'items.*.unit_price.min' => '單價不可為負數。',
-            'expected_date.after_or_equal' => '預計到貨日不可早於採購日期。',
+            'required_date.after_or_equal' => '需求日期不可早於請購日期。',
         ];
     }
 }

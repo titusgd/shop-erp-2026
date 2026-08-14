@@ -1,4 +1,5 @@
 import { drawPriceLineChart, formatChartMoney, seriesKey } from './price-history-chart';
+import { renderPaginationControls } from './pagination-controls';
 
 const csrfToken = () =>
     document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
@@ -192,33 +193,6 @@ export function initPriceHistories(root, productId) {
         }
     };
 
-    const chevronLeft = `
-        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-        </svg>
-    `;
-    const chevronRight = `
-        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-        </svg>
-    `;
-
-    const pageButtonClass = (active, disabled = false, isFirst = false) => {
-        const base =
-            'inline-flex h-9 min-w-9 items-center justify-center px-3 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-inset focus:ring-teal-500';
-        const border = isFirst ? '' : 'border-l border-slate-300';
-
-        if (disabled) {
-            return `${base} ${border} cursor-not-allowed bg-slate-50 text-slate-400`;
-        }
-
-        if (active) {
-            return `${base} ${border} bg-teal-700 text-white`;
-        }
-
-        return `${base} ${border} bg-white text-teal-700 hover:bg-teal-50`;
-    };
-
     const lastListPage = (total) => Math.max(1, Math.ceil(total / LIST_PER_PAGE));
 
     const renderListPagination = (total) => {
@@ -242,49 +216,13 @@ export function initPriceHistories(root, productId) {
 
         pagination.hidden = false;
         paginationSummary.innerHTML = `顯示中 <span class="font-semibold text-slate-900">${from}</span> 至 <span class="font-semibold text-slate-900">${to}</span> 於 <span class="font-semibold text-slate-900">${total}</span> 筆`;
-
-        const buttons = [];
-
-        buttons.push(`
-            <button
-                type="button"
-                data-history-page-prev
-                ${listPage <= 1 ? 'disabled' : ''}
-                aria-label="上一頁"
-                class="${pageButtonClass(false, listPage <= 1, true)}"
-            >
-                ${chevronLeft}
-            </button>
-        `);
-
-        for (let pageNumber = 1; pageNumber <= lastPage; pageNumber += 1) {
-            const isActive = pageNumber === listPage;
-            buttons.push(`
-                <button
-                    type="button"
-                    data-history-page="${pageNumber}"
-                    aria-label="第 ${pageNumber} 頁"
-                    aria-current="${isActive ? 'page' : 'false'}"
-                    class="${pageButtonClass(isActive)}"
-                >
-                    ${pageNumber}
-                </button>
-            `);
-        }
-
-        buttons.push(`
-            <button
-                type="button"
-                data-history-page-next
-                ${listPage >= lastPage ? 'disabled' : ''}
-                aria-label="下一頁"
-                class="${pageButtonClass(false, listPage >= lastPage)}"
-            >
-                ${chevronRight}
-            </button>
-        `);
-
-        paginationControls.innerHTML = buttons.join('');
+        paginationControls.innerHTML = renderPaginationControls({
+            current: listPage,
+            lastPage,
+            pageAttr: 'data-history-page',
+            prevAttr: 'data-history-page-prev',
+            nextAttr: 'data-history-page-next',
+        });
     };
 
     const renderHistories = (histories, field, total) => {
